@@ -33,6 +33,7 @@ Tracing a workflow or transaction through a distributed system often looks somet
 ![](images/OTOV_3.png)
 
 This type of visualization adds the context of time, the hierarchy of the services involved, and the serial or parallel nature of the process/task execution. This view helps to highlight the system's critical path. By focusing on the critical path, attention can focus on the area of code where the most valuable improvements can be made. For example, you might want to trace the resource allocation spans inside an API request down to the underlying blocking calls.
+
 ----------------------------------------
 
 # Why Tracing?

@@ -73,9 +73,9 @@ func main() {
 
 将这些放到`main.go`文件中，运行`go run main.go`。
 
-#### **Instrument the app**
+#### **监控应用程序**
 
-Now that you have a working web server, you can start instrumenting it. Start at the top level and work your way down. You can start a span and finish it like so:
+现在，你有了一个可以工作的web应用服务器，你可以开始监控它了。你可以开始像下面这样，在入口设置一个span：
 
 ```go
 func homeHandler(w http.ResponseWriter, r *http.Request) {
@@ -85,7 +85,7 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
-This span records how long it takes **homeHandler** to complete, but that’s just the tip of the iceberg in terms of information that you can record. OpenTracing enables you to attach [tags](spec/#tags) and [logs](spec/#logs) to an individual span. For instance, you can specify whether or not a span contains an error inside **homeHandler**:
+这个span记录**homeHandler**方法完成所需的时间，这只是可以记录的信息的冰山一角。OpenTracing允许你为每一个span设置[tags](spec/#tags)和[logs](spec/#logs)。例如：你可以通过**homeHandler**方法是否正确返回，决定是否记录方法调用的错误信息：
 
 ```go
 // The ext package provides a set of standardized tags available for use.
@@ -103,9 +103,9 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
-You can record other things as well, including important events, the user ID, and the browser type.
+你也可以其他其他信息，如：发生的重要事件，用户id，浏览器类型。
 
-However, that’s only for one function. To build true end-to-end traces, you’ll want to include spans for the client side of the HTTP calls. In our example, you need to start propagating span contexts downstream to the other endpoints now, and those endpoints need to be able to join traces. This is where the Inject/Extract part of the API comes into play. **homeHandler** creates a "root" span since it’s the first thing to get called. You will start there and work your way down.
+然而，这只是其中的一个功能。为了构建真正的端到端追踪，你需要包含调用HTTP请求的客户端的span信息。在我们的示例中，你需要在端到端过程中传递span的上下文信息，使得各端中的span可以合并到一个追踪过程中。这就是API中Inject/Extract的职责。**homeHandler**方法在第一次被调用时，创建一个根span，后续过程如下：
 
 ```go
 func homeHandler(w http.ResponseWriter, r *http.Request) {
@@ -133,7 +133,7 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
-What happens underneath is that the underlying implementation injects a span’s metadata about the current trace into the request’s headers to be read by anyone downstream. Go ahead and extract that data in **serviceHandler**.
+上述代码，在底层实际的执行逻辑是：将关于本地追踪调用的span的元信息，被设置到http的头上，并准备传递出去。下面会展示如何在**serviceHandler**服务中提取这个元数据信息。
 
 ```go
 func serviceHandler(w http.ResponseWriter, r *http.Request) {
@@ -153,7 +153,9 @@ func serviceHandler(w http.ResponseWriter, r *http.Request) {
   // ... rest of the function
 ```
 
-And that’s it! If you repeat the steps above for things you want to trace, you should have a fully instrumented system fairly quickly. To decide what needs be traced, you should look at your requests’ critical paths.
+如上述程序所示，你可以通过http头获取元数据。你可以重复此步骤，为你需要追踪的调用进行设置，很快，你将可以监控整套系统。如何决定哪些调用需要被追踪呢？你可以考虑你的调用的关键路径。
+
+
 
 ---
 origin/原文

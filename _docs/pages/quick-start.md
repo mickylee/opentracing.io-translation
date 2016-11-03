@@ -159,8 +159,8 @@ func serviceHandler(w http.ResponseWriter, r *http.Request) {
 
 One of the great things about OpenTracing is that once your system is instrumented, adding a tracer is really straightforward! In this example, you can see that I’ve used Appdash, an open source tracing system. There’s small chunk of code needed inside your main function to start the Appdash instance. However, you won’t need to touch any of your instrumentation code at all. In your main function, add:
 
-
-```goimport (
+```go
+import (
 	"sourcegraph.com/sourcegraph/appdash"
 	“sourcegraph.com/sourcegraph/appdash/traceapp”
 	appdashot "sourcegraph.com/sourcegraph/appdash/opentracing"

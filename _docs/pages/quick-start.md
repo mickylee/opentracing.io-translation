@@ -155,9 +155,9 @@ func serviceHandler(w http.ResponseWriter, r *http.Request) {
 
 如上述程序所示，你可以通过http头获取元数据。你可以重复此步骤，为你需要追踪的调用进行设置，很快，你将可以监控整套系统。如何决定哪些调用需要被追踪呢？你可以考虑你的调用的关键路径。
 
-## **Connect the tracer**
+## **连接到追踪系统**
 
-One of the great things about OpenTracing is that once your system is instrumented, adding a tracer is really straightforward! In this example, you can see that I’ve used Appdash, an open source tracing system. There’s small chunk of code needed inside your main function to start the Appdash instance. However, you won’t need to touch any of your instrumentation code at all. In your main function, add:
+OpenTracing最重要的作用就是，当你的系统按照标准被监控之后，增加一个追踪系统将变得非常简单！在这个示例，你可以看到，我使用了一个叫做Appdash的开源追踪系统。你需要通过在main函数中增加一小段代码，来启动Appdash实例。但是，你不需要修改任何你关于监控的代码。在你的main函数中，加入如下内容：
 
 ```go
 import (
@@ -209,11 +209,11 @@ func main() {
 }
 ```
 
-This will create an embedded Appdash instance and serve traces locally.
+这样你会增加一个嵌入式的Appdash实例，并对本地程序进行监控。
 
 ![image alt text](/images/QS_02.png)
 
-Should you want to change your tracer implementation, it is a O(1) change because of OpenTracing. All you need to do is update your main function; the rest of your instrumentation stays the same. For example, if you decide to use Zipkin later on, this is all you would need to do in your main function:
+如果你想换一个监控系统的实现，如果他们都符合OpenTracing，你只需要进行一步操作。你只需要修改你的main函数，其他所有的监控代码，都可以保持不变。例如，如果你决定使用Zipkin，你只需要在main函数中进行如下修改：
 
 ```go
 import zipkin "github.com/openzipkin/zipkin-go-opentracing"
@@ -238,7 +238,7 @@ func main() {
 }
 ```
 
-Having made it thus far, you can see that instrumenting your code for tracing is much easier with OpenTracing. I recommend this as a best practice whenever starting out on an app. That’s because by setting up tracing even when your application is small, trace data can guide your development strategy as you grow. Having visibility into your processes as they start to mature and increase in complexity will help you build a sustainable product.
+到目前为止，你会发现，使用OpenTracing使得监控你的代码更简单。我推荐在启动一个新项目的研发过程中，就加入监控的代码。因为，即使你的应用很小，追踪数据也可以在你的应用演进，引入分布式的时候，提供数据支持。帮助你在这个过程中，构建一个可持续迭代的产品。
 
 ---
 origin/原文

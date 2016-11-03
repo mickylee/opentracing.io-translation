@@ -9,4 +9,4 @@
   * [Instrumenting Large Systems, 监控大型系统](pages/instrumentation/instrumenting-large-systems.md)
   * [Instrumenting Frameworks, 监控框架](pages/instrumentation/instrumenting-frameworks.md)
 * [Authors and Contributors, 作者和贡献者](pages/authors-and-contributors.md)
-* [Supported Tracers](pages/supported-tracers.md)
+* [Supported Tracers, 符合标准的项目](pages/supported-tracers.md)

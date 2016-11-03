@@ -155,7 +155,90 @@ func serviceHandler(w http.ResponseWriter, r *http.Request) {
 
 如上述程序所示，你可以通过http头获取元数据。你可以重复此步骤，为你需要追踪的调用进行设置，很快，你将可以监控整套系统。如何决定哪些调用需要被追踪呢？你可以考虑你的调用的关键路径。
 
+## **Connect the tracer**
 
+One of the great things about OpenTracing is that once your system is instrumented, adding a tracer is really straightforward! In this example, you can see that I’ve used Appdash, an open source tracing system. There’s small chunk of code needed inside your main function to start the Appdash instance. However, you won’t need to touch any of your instrumentation code at all. In your main function, add:
+
+
+```goimport (
+	"sourcegraph.com/sourcegraph/appdash"
+	“sourcegraph.com/sourcegraph/appdash/traceapp”
+	appdashot "sourcegraph.com/sourcegraph/appdash/opentracing"
+)
+
+func main() {
+	// ...
+  	store := appdash.NewMemoryStore()
+
+	// Listen on any available TCP port locally.
+	l, err := net.ListenTCP("tcp", &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 0})
+	if err != nil {
+		log.Fatal(err)
+	}
+	collectorPort := l.Addr().(*net.TCPAddr).Port
+	collectorAdd := fmt.Sprintf(":%d", collectorPort)
+
+	// Start an Appdash collection server that will listen for spans and
+	// annotations and add them to the local collector (stored in-memory).
+	cs := appdash.NewServer(l, appdash.NewLocalCollector(store))
+	go cs.Start()
+
+	// Print the URL at which the web UI will be running.
+	appdashPort := 8700
+	appdashURLStr := fmt.Sprintf("http://localhost:%d", appdashPort)
+	appdashURL, err := url.Parse(appdashURLStr)
+	if err != nil {
+		log.Fatalf("Error parsing %s: %s", appdashURLStr, err)
+	}
+	fmt.Printf("To see your traces, go to %s/traces\n", appdashURL)
+
+	// Start the web UI in a separate goroutine.
+	tapp, err := traceapp.New(nil, appdashURL)
+	if err != nil {
+	 	log.Fatal(err)
+	}
+	tapp.Store = store
+	tapp.Queryer = store
+	go func() {
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", appdashPort), tapp))
+	}()
+
+	tracer := appdashot.NewTracer(appdash.NewRemoteCollector(collectorPort))
+	opentracing.InitGlobalTracer(tracer)
+// ...
+}
+```
+
+This will create an embedded Appdash instance and serve traces locally.
+
+![image alt text](/images/QS_02.png)
+
+Should you want to change your tracer implementation, it is a O(1) change because of OpenTracing. All you need to do is update your main function; the rest of your instrumentation stays the same. For example, if you decide to use Zipkin later on, this is all you would need to do in your main function:
+
+```go
+import zipkin "github.com/openzipkin/zipkin-go-opentracing"
+
+func main() {
+  // ...
+  // Replace Appdash tracer code with this
+  collector, err := zipkin.NewKafkaCollector("ZIPKIN_ADDR")
+  if err != nil {
+    log.Fatal(err)
+    return
+  }
+
+  tracer, err = zipkin.NewTracer(
+    zipkin.NewRecorder(collector, false, "localhost:8000", "example"),
+  )
+  if err != nil {
+    log.Fatal(err)
+  }
+  opentracing.InitGlobalTracer(tracer)
+  // ...
+}
+```
+
+Having made it thus far, you can see that instrumenting your code for tracing is much easier with OpenTracing. I recommend this as a best practice whenever starting out on an app. That’s because by setting up tracing even when your application is small, trace data can guide your development strategy as you grow. Having visibility into your processes as they start to mature and increase in complexity will help you build a sustainable product.
 
 ---
 origin/原文

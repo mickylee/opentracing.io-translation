@@ -1,15 +1,15 @@
-# Concepts and Terminology
+# 概念和术语
 
 
 ~~~
-Causal relationships for Spans in a single trace
+一个tracer过程中，各span的关系
 
 
         [Span A]  ←←←(the root span)
             |
      +------+------+
      |             |
- [Span B]      [Span C] ←←←(Span C is a "ChildOf" Span A)
+ [Span B]      [Span C] ←←←(Span C 是 Span A 的孩子节点)
      |             |
  [Span D]      +---+-------+
                |           |
@@ -17,12 +17,12 @@ Causal relationships for Spans in a single trace
                                        ↑
                                        ↑
                                        ↑
-                         (Span G "FollowsFrom" Span F)
+                         (Span G 在 Span F 后被调用)
 
 ~~~
 
 ~~~
-Temporal relationships for all of the above
+上述tracer与span的时间轴关系
 
 
 ––|–––––––|–––––––|–––––––|–––––––|–––––––|–––––––|–––––––|–> time
@@ -36,27 +36,27 @@ Temporal relationships for all of the above
 
 ## Traces
 
-A **Trace** represents the potentially distributed, potentially concurrent data/execution path in a (potentially distributed, potentially concurrent) system. A Trace can be thought of as a directed acyclic graph (DAG) of Spans.
+一个trace代表一个潜在的，分布式的，存在并行数据或并行执行轨迹（潜在的分布式、并行）的系统。一个trace可以认为是多个span的有向无环图（DAG）。
 
 ## Spans
 
-A **Span** represents a logical unit of work in the system that has a start time and a duration. Spans may be nested and ordered to model causal relationships.
+一个span代表系统中具有开始时间和执行时长的逻辑运行单元。span之间通过嵌套或者顺序排列建立逻辑因果关系。
 
-### Operation Names
+### 操作名称
 
-Each Span has an **operation name**, a human-readable string which concisely represents the work done by the Span (e.g., an RPC method name, a function name, or the name of a subtask or stage within a larger computation). The operation name should be **the most general (i.e., least specific) string that identifies a (statistically) interesting class of Span instances**; more specific sub-classes should be described using [Tags](#tags).
+每一个span都有一个操作名称，这个名称简单，并具有可读性高。（例如：一个RPC方法的名称，一个函数名，或者一个大型计算过程中的子任务或阶段）。span的操作名应该是一个抽象、通用的标识，能够明确的、具有统计意义的名称；更具体的子类型的描述，请使用[Tags](#tags)
 
-For example, here are potential operation names for a Span that gets hypothetical account information:
+例如，假设一个获取账户信息的span会有如下可能的名称：
 
-| Operation Name | Guidance |
+| 操作名 | 指导意见 |
 |:---------------|:--------|
-| `get` | Too general |
-| `get_account/792` | Too specific |
-| `get_account` | Good, and `account_id=792` would make a nice [Tag](#tags) |
+| `get` | 太抽象 |
+| `get_account/792` | 太明确 |
+| `get_account` | 正确的操作名，关于`account_id=792`的信息应该使用[Tag](#tags)操作 |
 
 <span id="references"></span>
 
-### Causal Span References
+### Span间关系
 
 A Span may reference zero or more Spans that are causally related. OpenTracing presently defines two types of references: `ChildOf` and `FollowsFrom`. **Both reference types specifically model direct causal relationships between a child Span and a parent Span.** In the future, OpenTracing may also support reference types for spans with non-causal relationships (e.g., Spans that are batched together, Spans that are stuck in the same queue, etc).
 

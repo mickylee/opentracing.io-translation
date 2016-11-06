@@ -9,7 +9,7 @@
             |
      +------+------+
      |             |
- [Span B]      [Span C] ←←←(Span C 是 Span A 的孩子节点)
+ [Span B]      [Span C] ←←←(Span C 是 Span A 的孩子节点, ChildOf)
      |             |
  [Span D]      +---+-------+
                |           |
@@ -17,7 +17,7 @@
                                        ↑
                                        ↑
                                        ↑
-                         (Span G 在 Span F 后被调用)
+                         (Span G 在 Span F 后被调用, FollowsFrom)
 
 ~~~
 
@@ -58,15 +58,15 @@
 
 ### Span间关系
 
-A Span may reference zero or more Spans that are causally related. OpenTracing presently defines two types of references: `ChildOf` and `FollowsFrom`. **Both reference types specifically model direct causal relationships between a child Span and a parent Span.** In the future, OpenTracing may also support reference types for spans with non-causal relationships (e.g., Spans that are batched together, Spans that are stuck in the same queue, etc).
+一个span可以和一个或者多个span间存在因果关系。OpenTracing定义了两种关系：`ChildOf` 和 `FollowsFrom`。**这两种引用类型代表了子节点和父节点间的直接因果关系**。未来，OpenTracing将支持非因果关系的span引用关系。（例如：多个span被批量处理，span在同一个队列中，等等）
 
-**`ChildOf` references:** A Span may be the "ChildOf" a parent Span. In a "ChildOf" reference, the parent Span depends on the child Span in some capacity. All of the following would constitute ChildOf relationships:
+**`ChildOf` 引用:** 一个span可能是一个父级span的孩子，即"ChildOf"关系。在"ChildOf"引用关系下，父级span某种程度上取决于子span。下面这些情况会构成"ChildOf"关系：
 
-- A Span representing the server side of an RPC may be the ChildOf a Span representing the client side of that RPC
-- A Span representing a SQL insert may be the ChildOf a Span representing an ORM save method
-- Many Spans doing concurrent (perhaps distributed) work may all individually be the ChildOf a single parent Span that merges the results for all children that return within a deadline
+- 一个RPC调用的服务端的span，和RPC服务客户端的span构成ChildOf关系
+- 一个sql insert操作的span，和ORM的save方法的span构成ChildOf关系
+- 很多span可以并行工作（或者分布式工作）都可能是一个父级的span的子项，他会合并所有子span的执行结果，并在指定期限内返回
 
-These could all be valid timing diagrams for children that are the "ChildOf" a parent.
+下面都是合理的表述一个"ChildOf"关系的父子节点关系的时序图。
 
 ~~~
     [-Parent Span---------]
@@ -80,9 +80,9 @@ These could all be valid timing diagrams for children that are the "ChildOf" a p
          [-Child Span E----]
 ~~~
 
-**`FollowsFrom` references:** Some parent Spans do not depend in any way on the result of their child Spans. In these cases, we say merely that the child Span "FollowsFrom" the parent Span in a causal sense. There are many distinct "FollowsFrom" reference sub-categories, and in future versions of OpenTracing they may be distinguished more formally.
+**`FollowsFrom` 引用:** 一些父级节点不以任何方式依然他们子节点的执行结果，这种情况下，我们说这些子span和父span之间是"FollowsFrom"的因果关系。"FollowsFrom"关系可以被分为很多不同的子类型，未来版本的OpenTracing中将正式的区分这些类型
 
-These can all be valid timing diagrams for children that "FollowFrom" a parent.
+下面都是合理的表述一个"FollowFrom"关系的父子节点关系的时序图。
 
 ~~~
     [-Parent Span-]  [-Child Span-]

@@ -100,7 +100,7 @@
 
 每个span可以进行多次**Logs**操作，每一次**Logs**操作，都需要一个带时间戳的时间名称，以及可选的任意大小的存储结构。事件名称应该是span生命周期内，一些特定事件的标识符。例如，一个代表浏览器页面加载的span，可以为每一个字段添加一个时间，可参考[Performance.timing](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceTiming)。
 
-虽然不是强制要求，但是特定的时间名称应该作用在大量的span示例上：因为追踪系统可能使用这些事件名称（包括时间戳），对span进行分析汇总。更多信息，可参考[Data Semantics Guidelines 数据语义指南](api/data-conventions.html)。
+虽然不是强制要求，但是特定的时间名称应该作用在大量的span示例上：因为追踪系统可能使用这些事件名称（包括时间戳），对span进行分析汇总。更多信息，可参考[Data Conventions Guidelines 数据约定指南](api/data-conventions.html)。
 
 <span id="tags"></span>
 

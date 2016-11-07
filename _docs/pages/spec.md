@@ -42,7 +42,7 @@
 
 一个span代表系统中具有开始时间和执行时长的逻辑运行单元。span之间通过嵌套或者顺序排列建立逻辑因果关系。
 
-### 操作名称
+### Operation Names
 
 每一个span都有一个操作名称，这个名称简单，并具有可读性高。（例如：一个RPC方法的名称，一个函数名，或者一个大型计算过程中的子任务或阶段）。span的操作名应该是一个抽象、通用的标识，能够明确的、具有统计意义的名称；更具体的子类型的描述，请使用[Tags](#tags)
 
@@ -56,7 +56,7 @@
 
 <span id="references"></span>
 
-### Span间关系
+### Causal Span References
 
 一个span可以和一个或者多个span间存在因果关系。OpenTracing定义了两种关系：`ChildOf` 和 `FollowsFrom`。**这两种引用类型代表了子节点和父节点间的直接因果关系**。未来，OpenTracing将支持非因果关系的span引用关系。（例如：多个span被批量处理，span在同一个队列中，等等）
 
@@ -112,7 +112,7 @@
 
 ## SpanContext
 
-每个span必须提供方法访问**SpanContext**。SpanContext代表跨越进程边界，传递到下级span的状态。(例如，包含`<trace_id, span_id, sampled>`元组)，并用于封装**Baggage** (关于Baggage的解释，请参考下文)。SpanContext在跨越进程边界，和在追踪图中创建边界的时候会使用。(ChildOf关系或者其他关系，参考[Span间关系](#Span间关系) )。
+每个span必须提供方法访问**SpanContext**。SpanContext代表跨越进程边界，传递到下级span的状态。(例如，包含`<trace_id, span_id, sampled>`元组)，并用于封装**Baggage** (关于Baggage的解释，请参考下文)。SpanContext在跨越进程边界，和在追踪图中创建边界的时候会使用。(ChildOf关系或者其他关系，参考[Span间关系](#references) )。
 
 ### Baggage
 
@@ -173,12 +173,13 @@ OpenTracing支持了很多不同的平台，当然，每个平台的API试图保
 
 `Tracer`接口必须实现以下功能：
 
-- **Start a new `Span`**. The caller can specify zero or more [`SpanContext` references](#references) (e.g., `FollowsFrom` or `ChildOf`), an explicit start timestamp (other than "now"), and an initial set of `Span` tags. **(py: `start_span`, go: `StartSpan`)**
-- <span id="inject-extract"></span>**Inject a `SpanContext`** into a "carrier" object for cross-process propagation. The type of the carrier is either determined through reflection or an explicit [format identifier](/propagation#format-identifiers). See the [end-to-end propagation example](/propagation#propagation-example) to make this more concrete.
-- **Extract a `SpanContext`** given a "carrier" object whose contents crossed a process boundary. Extract examines the carrier and tries to reconstruct the previously-Injected `SpanContext` instance. Unless there's an error, Extract returns a `SpanContext` which can be used in the host process like any other, most likely to start a new (child) Span. (Note that some OpenTracing implementations consider the `Span`s on either side of an RPC to have the same identity, and others consider the client to be the parent and the server to be the child) The type of the carrier is either determined through language reflection or an explicit [format](api/cross-process-tracing#format-identifiers). See the [end-to-end propagation example](api/cross-process-tracing#propagation-example) to make this more concrete.
+- **Start a new `Span`**, 创建一个新的Span。调用者可以指定一个或多个[`SpanContext` 关系](#references)(例如 `FollowsFrom` 或 `ChildOf`关系)，显示声明一个开始的时间戳（除"now"之外），并设置处理化的`Span`的tags数据集。**(py: `start_span`, go: `StartSpan`)**
+- <span id="inject-extract"></span>**Inject a `SpanContext`**，将`SpanContext`注入到`SpanContext`对象中，用于进行跨进程的传输。"carrier"类型需要反射或者明确指定的方式来确定。查看[end-to-end propagation example 端到端传递示例](/propagation#propagation-example)获取更多消息。
+- **Extract a `SpanContext`** ，通过"carrier"跨进程获取`SpanContext`信息。Extract会检查`carrier`，尝试获取先前通过`Inject`放入的数据，并重建`SpanContext`实例。除非有错误发生，Extract返回一个包含`SpanContext`实例，此实例可以用来创建一个新的子级Span。（注意：一些OpenTracing实现方式，认为`Span`在RPC的两端应该具有相同的ID，而另一些考虑客户端是父级span，服务端是子级span）。"carrier"类型需要反射或者明确指定的方式来确定。查看[end-to-end propagation example 端到端传递示例](/propagation#propagation-example)获取更多消息。
 
 ### Global and No-op Tracers
 
-A per-platform OpenTracing API library (e.g., [opentracing-go](https://github.com/opentracing/opentracing-go), [opentracing-java](https://github.com/opentracing/opentracing-java), etc; not OpenTracing `Tracer` *implementations*) must provide a no-op Tracer as part of their interface. The no-op Tracer implementation must not crash and should have no side-effects, including baggage propagation. The Tracer implementation must provide a no-op Span implementation as well; in this way, the instrumentation code that relies on Span instances returned by the Tracer does not need to change to accommodate the possibility of no-op implementations. The no-op Tracer's Inject method should always succeed, and Extract should always behave as if no `SpanContext` could be found in the carrier.
+每一个平台的OpenTracing API库 (例如 [opentracing-go](https://github.com/opentracing/opentracing-go), [opentracing-java](https://github.com/opentracing/opentracing-java)，等等；不包含OpenTracing `Tracer`接口的实现）必须提供一个no-op Tracer（不具有任何操作的tracer）作为接口的一部分。No-op Tracer的实现必须不会出错，并且不会有任何副作用，包括baggage的传递时，也不会出现任何问题。同样，Tracer的实现也必须提供no-op Span实现；通过这种方法，监控代码不依赖于Tracer关于Span的返回值，针对no-op实现，不需要修改任何源代码。No-op Tracer的Inject方法永远返回成功，Extract返回的效果，和"carrier"中没有找到`SpanContext`时返回的结果一样。
 
-The per-platform OpenTracing API libraries *may* provide support for configuring (Go: `InitGlobalTracer()`, py: `opentracing.tracer = myTracer`) and retrieving (Go: `GlobalTracer()`, py: `opentracing.tracer`) a global/singleton Tracer instance. If a global Tracer is supported, the default must be the no-op Tracer.
+每一个平台的OpenTracing API库 *可能* 支持配置(Go: `InitGlobalTracer()`, py: `opentracing.tracer = myTracer`)和获取单例的全局Tracer实例(Go: `GlobalTracer()`, py: `opentracing.tracer`)。如果支持全局的Tracer，默认返回的必须是no-op Tracer。
+

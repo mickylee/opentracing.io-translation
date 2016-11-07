@@ -1,6 +1,6 @@
-# OpenTracing Language Support
+# OpenTracing多语言支持
 
-OpenTracing APIs are available for the following platforms:
+OpenTracing API支持以下平台：
 
 * Go - [https://github.com/opentracing/opentracing-go](https://github.com/opentracing/opentracing-go)
 * Python - [https://github.com/opentracing/opentracing-python](https://github.com/opentracing/opentracing-python)
@@ -9,11 +9,11 @@ OpenTracing APIs are available for the following platforms:
 * Java - [https://github.com/opentracing/opentracing-java](https://github.com/opentracing/opentracing-java)
 * C++ - [https://github.com/opentracing/opentracing-cpp](https://github.com/opentracing/opentracing-cpp)
 
-OpenTracing APIs are in progress for the following platforms:
+OpenTracing API以下平台实现正在研发中：
 
 * PHP - link forthcoming
 * Ruby - link forthcoming
 
-Please refer to the README files in the respective per-platform repositories for usage examples.
+有关各平台的使用示例，请参考查阅各平台仓库的README文档。
 
-Community contributions are welcome for other languages at any time.
+欢迎社区贡献其他语言的实现。

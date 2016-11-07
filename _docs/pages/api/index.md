@@ -1,5 +1,5 @@
 ## OpenTracing APIs
 
-* [OpenTracing Language Support](api-implementations.md)
-* [Data Conventions](data-conventions.md)
-* [Cross-Process Tracing](cross-process-tracing.md)
+* [OpenTracing Language Support, OpenTracing多语言支持](api-implementations.md)
+* [Data Conventions, 数据约定](data-conventions.md)
+* [Cross-Process Tracing, 跨进程追踪](cross-process-tracing.md)

@@ -116,62 +116,62 @@
 
 ### Baggage
 
-**Baggage**是存在在SpanContext一个键值对(SpanContext)集合。它会在一条追踪链路上的所有span内_全局_传输，包含这些span对应的SpanContexts。在这种情况下，"Baggage"会随着trace一同传播，他因此得名（Baggage可理解为随着trace运行过程传送的行李）。鉴于全栈OpenTracing集成的需要，Baggage通过透明化的传输任意应用程序的数据，实现强大的功能。例如：可以在最终用户的手机端添加一个Baggage元素，并通过分布式追踪系统传递到存储层，然后再通过反向构建调用栈，定位过程中消耗很大的SQL查询语句。
+**Baggage**是存储在SpanContext中的一个键值对(SpanContext)集合。它会在一条追踪链路上的所有span内_全局_传输，包含这些span对应的SpanContexts。在这种情况下，"Baggage"会随着trace一同传播，他因此得名（Baggage可理解为随着trace运行过程传送的行李）。鉴于全栈OpenTracing集成的需要，Baggage通过透明化的传输任意应用程序的数据，实现强大的功能。例如：可以在最终用户的手机端添加一个Baggage元素，并通过分布式追踪系统传递到存储层，然后再通过反向构建调用栈，定位过程中消耗很大的SQL查询语句。
 
-Baggage的强大功能，也会有很大的_消耗_。由于Baggage的全局传输，如果数量量太大，或者元素太多，它将降低系统的吞吐量或增加RPC的延迟。
+Baggage拥有强大功能，也会有很大的_消耗_。由于Baggage的全局传输，如果包含的数量量太大，或者元素太多，它将降低系统的吞吐量或增加RPC的延迟。
 
 ## Baggage vs. Span Tags
 
-- Baggage is propagated in-band (i.e., alongside the actual application data) across process boundaries. Span Tags are not propagated since they are not inherited by child Spans.
+- Baggage在全局范围内，跨进程传输（并且包含实际的应用数据）。Span的tag不会进行传输，因为他们不会被子级的span继承。
+- span的tag记录业务系统之外的数据，并存储于追踪系统中。实现OpenTracing时，可以选择用Baggage来存储非业务数据.（TODO：out-of-band and in-band）
 - Span Tags are recorded out-of-band from the application data, presumably in the tracing system's storage. Implementations may choose to also record Baggage out-of-band, though that decision is not dictated by the OpenTracing specification.
 
 ## Inject and Extract
 
-SpanContexts may be **Injected** into and **Extracted** from **Carrier** objects that are used for inter-process communication (e.g., HTTP headers). In this way, SpanContexts may propagate across process boundaries along with sufficient information to reference Spans (and thus continue traces) from remote processes.
+SpanContexts可以通过**Injected**操作向**Carrier**增加，或者通过**Extracted**从**Carrier**中获取，跨进程通讯数据（例如：HTTP头）。通过这种方式，SpanContexts可以跨越进程边界，并提供足够的信息来建立跨进程的span间关系（因此可以实现跨进程连续追踪）。
 
-# Platform-Independent API Semantics
+# 平台无关的API语义
 
-OpenTracing supports a number of different platforms, and of course the per-platform APIs try to adhere to the idioms and conventions of their respective language and platform (i.e., they "do as the Romans do"). That said, each platform API must model a common set of semantics for the core tracing concepts described above. In this section we attempt to describe those concepts and semantics in a language- and platform-agnostic fashion.
+OpenTracing支持了很多不同的平台，当然，每个平台的API试图保持各平台和语言的习惯和管理，尽量做到入乡随俗。也就是说，每个平台的API，都需要根据上述的核心tracing概念来建模实现。在这一章中，我们试图描述这些概念和语义，尽量减少语言和平台的影响。
 
 ## The `Span` Interface
 
-The `Span` interface must have the following capabilities:
+`Span`接口必须实现以下的功能：
 
-- **Get the `Span`'s [`SpanContext`](#SpanContext)** (even after the `Span` has finished, per Finish just below)
-- **Finish** the (already-started) `Span`. With the exception of calls to retrieve the `SpanContext`, Finish must be the last call made to any span instance. **(py: `finish`, go: `Finish`)** Some implementations may record information about active `Span`s before they are Finished (e.g., for long-lived `Span` instances), or Finish may never be called due to host process failure or programming errors. Implementations should clearly document the `Span` durability guarantees they provide in such cases.
-- **Set a key:value tag on the `Span`.** The key must be a `string`, and the value must be either a `string`, a `boolean`, or a numeric type. Behavior for other value types is undefined. If multiple values are set to the same key (i.e., in multiple calls), implementation behavior is also undefined. **(py: `set_tag`, go: `SetTag`)**
-- **Add a new log event** to the `Span`, accepting an event name `string` and an optional structured payload argument. If specified, the payload argument may be of any type and arbitrary size, though implementations are not required to retain all payload arguments (or even all parts of all payload arguments). An optional timestamp can be used to specify a past timestamp. **(py: `log`, go: `Log`)**
+- **Get the `Span`'s [`SpanContext`](#SpanContext)**， 通过span获取SpanContext （即使`span`已经结束，或者即将结束）
+- **Finish**，完成已经开始的`Span`。处理获取`SpanContext`之外，Finish必须是span实例的最后一个被调用的方法。**(py: `finish`, go: `Finish`)**。 一些的语言实现方法会在`Span`结束之前记录相关信息，因为Finish方法可能不会被调用，因为主线程处理失败或者其他程序错误。在这种情况下，实现应该明确的记录`Span`，保证数据的持久化。
+- **Set a key:value tag on the `Span`.**，为`Span`设置tag。tag的key必须是`string`类型，value必须是`string`，`boolean`或数字类型。tag其他类型的value是没有定义的。如果多个value对应同一个key（例如被设置多次），实现方式是没有被定义的。**(py: `set_tag`, go: `SetTag`)**
+- **Add a new log event**，为`Span`增加一个log事件。事件名称是`string`类型，参数值可以是任何类型，任何大小。tracer的实现者不一定保存所有的参数值（设置可以所有参数值都不保存）。其中的时间戳参数，可以设置当前时间之前的时间戳。**(py: `log`, go: `Log`)**
 
 ## The `SpanContext` Interface
 
-The `SpanContext` interface must have the following capabilities. The user acquires a reference to a `SpanContext` via an associated `Span` instance or via `Tracer`'s Extract capability.
+`SpanContext`接口必须实现以下功能。用户可以通过`Span`实例或者`Tracer`的Extract能力获取`SpanContext`接口实例。
 
-- **Set a Baggage item**, represented as a simple string:string pair. Note that newly-set Baggage items are only guaranteed to propagate to *future* children of the associated `Span`. See the diagram below. **(py: `set_baggage_item`, go: `SetBaggageItem`)**
-- **Get a Baggage item** by key. **(py: `get_baggage_item`, go: `BaggageItem`)**
+- **Set a Baggage item**, 设置一个string:string类型的键值对。注意，新设置的Baggage元素，只保证传递到未来的子级的`Span`。参考下图所示。**(py: `set_baggage_item`, go: `SetBaggageItem`)**
+- **Get a Baggage item**， 通过key获取Baggage中的元素。**(py: `get_baggage_item`, go: `BaggageItem`)**
 
 ~~~
         [Span A]
             |
      +------+------+
      |             |
- [Span B]      [Span C] ←←← (1) BAGGAGE ITEM "X" IS SET ON SPAN C,
-     |             |            BUT AFTER SPAN E ALREADY STARTED.
+ [Span B]      [Span C] ←←← (1) BAGGAGE ITEM "X" IS SET ON SPAN C,BUT AFTER SPAN E ALREADY STARTED.
+     |             |            为SPAN C设置BAGGAGE元素，值为X，时间点为SPAN E已经开始运行
  [Span D]      +---+-----+
                |         |
            [Span E]  [Span F] >>> [Span G] >>> [Span H]
                                                  ↑
                                                  ↑
                                                  ↑
-             (2) BAGGAGE ITEM "X" IS AVAILABLE FOR
-                 RETRIEVAL BY SPAN H (A CHILD OF
-                 SPAN C), AS WELL AS SPANS F AND G.
+             (2) BAGGAGE ITEM "X" IS AVAILABLE FOR RETRIEVAL BY SPAN H (A CHILD OF SPAN C), AS WELL AS SPANS F AND G.
+                 SPAN C元素的F\G\H子级span可以读取到BAGGAGE的元素X
 ~~~
 
-- Though formally part of the `Tracer` interface, `SpanContext` is essential to [Inject and Extract](#inject-extract) below
+- 虽然以前`SpanContext`是`Tracer`接口的一部分，但是`SpanContext`对于[Inject and Extract](#inject-extract)是必不可少的。
 
 ## The `Tracer` Interface
 
-The `Tracer` interface must have the following capabilities:
+`Tracer`接口必须实现以下功能：
 
 - **Start a new `Span`**. The caller can specify zero or more [`SpanContext` references](#references) (e.g., `FollowsFrom` or `ChildOf`), an explicit start timestamp (other than "now"), and an initial set of `Span` tags. **(py: `start_span`, go: `StartSpan`)**
 - <span id="inject-extract"></span>**Inject a `SpanContext`** into a "carrier" object for cross-process propagation. The type of the carrier is either determined through reflection or an explicit [format identifier](/propagation#format-identifiers). See the [end-to-end propagation example](/propagation#propagation-example) to make this more concrete.

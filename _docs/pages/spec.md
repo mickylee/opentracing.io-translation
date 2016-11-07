@@ -106,13 +106,13 @@
 
 ### Tags
 
-Every Span may also have zero or more key:value **Tags**, which do not have timestamps and simply annotate the spans.
+每个span可以有多个键值对（key:value）形式的**Tags**，**Tags**是没有时间戳的，支持简单的对span进行注解和补充。
 
-As is the case with Logs, if certain known tag key:values are used for common application scenarios, tracers can choose to pay special attention to them. For more information, see the [Data Semantics Guidelines](api/data-conventions).
+和使用**Logs**的场景一样，对于应用程序特定场景已知的键值对**Tags**，tracer可以对他们特别关注一下。更多信息，可参考[Data Conventions Guidelines 数据约定指南](api/data-conventions.html)。
 
 ## SpanContext
 
-Every Span must provide access to a **SpanContext**. The SpanContext represents Span state that must propagate to child Spans and across process boundaries (e.g., a `<trace_id, span_id, sampled>` tuple) and also encapsulates any **Baggage** (see below). SpanContext is used when propagating traces across process boundaries and when creating edges in the trace graph (e.g., ChildOf relationships or other [references](#references)).
+每个span必须提供方法访问**SpanContext**。SpanContext代表跨越进程边界，传递到下级span的状态。(例如，包含`<trace_id, span_id, sampled>`元组)，并用于封装**Baggage** (关于Baggage的解释，请参考下文)。SpanContext在跨越进程边界，和在追踪图中创建边界的时候会使用。(ChildOf关系或者其他关系，参考[Span间关系](#Span间关系) )。
 
 ### Baggage
 

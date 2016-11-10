@@ -26,15 +26,15 @@ Span 可以包含很多的tags、logs和baggage，但是始终需要一个高度
 Span的结构也是非常重要的：span代表了什么，span和span的上下级是什么关系？这些内容在章节[Concepts and Terminology, 概念与术语](/pages/spec.html)中描述。
 
 
-## Span Tag Use-Cases
+## Span Tag Use-Cases, Span Tag操作用例
 
-The following tags are recommended for instrumentors who are trying to represent a particular type of data. Tag names follow a general structure of namespacing.
+监控软件开发者，如果试图标书如下特定类型的数据，请使用下面推荐的tags。tag名称遵循命名空间的通用结构（即：java包名的结构）
 
-The recommended tags below are accompanied by `const` values included in an `ext` module for each opentracing implementation.  These `ext` values should be used in place of the strings below, as tracers may choose to use different underlying representations for these common concepts.  The symbols are similar in each implementation: ([Go](https://github.com/opentracing/opentracing-go/blob/master/ext/tags.go), [Python](https://github.com/opentracing/opentracing-python/blob/master/opentracing/ext/tags.py), etc.)
+下面推荐的tag，在`ext`模块中，都会为每一个实现制定一个`const`常量值。这些`ext`的值应该用来代表下面的字符串，不同的追踪系统，可以为这些通用概念选择不同的底层实现。在每种实现中，这些值的实现方式是十分相似的。(例如：[Go](https://github.com/opentracing/opentracing-go/blob/master/ext/tags.go), [Python](https://github.com/opentracing/opentracing-python/blob/master/opentracing/ext/tags.py))
 
-Some tags mentioned below may contain values of significant size. Handling of such values is implementation-specific: it is the responsibility of the Tracer to honor, drop, or truncate these tags as appropriate. However, care should be exercised on the part of the instrumentor, as even the generation or passing of such values to the Tracer may create undesirable overhead for the application.
+下面提供的一下tags可能包含一些象征大小的值。如何处理这些值是依赖于实现的：追踪系统会需要适当选择，是否要使用、删除或者清空这些tags标记。然而，不仅仅追踪程序才需要关注这些值，给追踪系统生成、传递这些值，也可能对应用系统造成不良影响。
 
-It is not required that all suggested tags be used, even if one is used.
+监控系统可以只支持其中的部分tags。
 
 ### Errors
 

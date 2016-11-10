@@ -38,70 +38,70 @@ Span的结构也是非常重要的：span代表了什么，span和span的上下�
 
 ### Errors
 
-The error state of a span instance should be represented as a tag.
+一个span实例的错误状态，通过一个tag来标注。
 
 * `error` - bool
-    - `true` means that the span is in an error state
-    - `false` or the absence of an `error` tag means that the span is not in an error state
+    - `true` 代表这个span是错误状态
+    - `false` 或没有 `error` tag ，代表span没有发生错误
 
-### Component Identification
+### Component Identification, 框架定义
 
-For any span, it can be useful to specify the type of component being instrumented. This is particularly recommended for instrumentation provided for libraries or modules, where end-users may have a mix of custom and library-provided instrumentation.
+对于任何一个span，被监控的组件，指定组件的类型是十分有帮助的。十分推荐库或者模块为监控程序提供组件的定义，最终用户可能会拥有一个由框架和第三方混合提供的监控。
 
 * `component` - string
-    - Low-cardinality identifier of the module, library, or package that is instrumented.
+    - 需要被检测/监控的类库、模块、包的基本名称。
     - Examples:
-        - `httplib` for instrumentation of Python builtin httplib functionality
-        - `JDBC` for instrumentation of JDBC database connectors
-        - `mongoose` for instrumentation of Ruby MongoDB client connector
+        - `httplib` 代表Python内建的httplib函数功能
+        - `JDBC` 代表JDBC数据库连接
+        - `mongoose` 代表Ruby的MongoDB客户端连接
 * `span.kind` - string
-    - One of `client` or `server`, indicating if this span represents a client or server
+    - `client` 或 `server`, 指定这个span代表一个客户端还是服务端
 
 ### HTTP Server Tags
 
-These tags are recommended for spans marking entry into a HTTP-based service.
+这些tag作用于基于HTTP的服务入口的span。
 
 * `http.url` - string
-    - URL of the request being handled in this segment of the trace, in [standard URI format](https://en.wikipedia.org/wiki/Uniform_Resource_Identifier).
-    - Protocol optional
+    - URL 分布式追踪中，这一阶段的调用的URL地址, 参考 [standard URI format](https://en.wikipedia.org/wiki/Uniform_Resource_Identifier).
+    - Protocol 协议，可选
     - Examples:
         - `https://domain.net/path/to?resource=here`
         - `domain.net/path/to/resource`
         - `http://user:pass@domain.org:8888`
 * `http.method` - string
-    - HTTP method of the request being handled.
-    - Case-insensitive
+    - HTTP 请求被处理的方法.
+    - Case-insensitive 大小写敏感
     - Examples:
         - `GET`, `POST`, `HEAD`
 * `http.status_code` - integer
-    - HTTP status code to be returned with HTTP response.
+    - HTTP 返回值
     - Examples:
         - `200`, `503`
 * `span.kind` - string
-    - Value of `server` should be used to indicate that this is a server-side span (see "<a href="#component-identification">Component Identification</a>")
+    - `server` 定义这是服务端类型的span (see "<a href="#component-identification">Component Identification, 框架定义</a>")
 
 
 ### Peer Tags
 
-These tags can be provided by either client-side or server-side to describe the downstream (client case) or upstream (server case) peer being communicated with.
+这些tag可以被客户端或者服务端提供，用于描述远程请求过程中，请求调用的方向。（客户端记录下行访问，服务端记录上行访问）
 
 * `peer.hostname` - string
-    - Remote hostname
+    - 目标 hostname
 * `peer.ipv4` - string
-    - Remote IP v4 address
+    - 目标 IP v4 地址
 * `peer.ipv6` - string
-    - Remote IP v6 address
+    - 目标 IP v6 地址
 * `peer.port` - integer
-    - Remote port
+    - 目标 port
 * `peer.service` - string
-    - Remote service name
+    - 目标服务名称
 
-### Sampling
+### Sampling, 采样
 
-OpenTracing API does not enforce the notion of sampling, but most implementation do use it in one form or another. Sometimes the application needs to give a hint to the tracer that it would like to have a particular trace recorded in storage even if the normal sampling says otherwise. The `sampling.priority` tag is used to provide such hint. Tracing implementations are not required to respect the hint, but most will do their best to preserve the trace.
+OpenTracing API不强调采样的概念，但是大多数追踪系统通过不同方式实现采样。有些情况下，应用系统需要通知追踪程序，这条特定的调用需要被记录，即使根据默认采样规则，它不需要被记录。`sampling.priority` tag 提供这样的方式。追踪系统不保证一定采纳这个参数，但是会尽可能的保留这条调用。
 
 * `sampling.priority` - integer
-    - If greater than 0, a hint to the tracer to do its best to capture the trace.
-    - If 0, a hint to the tracer to not capture the trace.
-    - If this tag is not provided, the tracer should use its default sampling mechanism.
+    - 如果大于 0, 追踪系统尽可能保存这条调用链
+    - 等于 0, 追踪系统不保存这条调用链
+    - 如果此tag没有提供，追踪系统使用自己的默认采样规则
 

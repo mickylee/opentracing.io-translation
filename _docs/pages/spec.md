@@ -123,7 +123,7 @@ Baggage拥有强大功能，也会有很大的_消耗_。由于Baggage的全局�
 ## Baggage vs. Span Tags
 
 - Baggage在全局范围内，（伴随业务系统的调用）跨进程传输数据。Span的tag不会进行传输，因为他们不会被子级的span继承。
-- span的tag可以用来记录业务相关的数据，并存储于追踪系统中。实现OpenTracing时，可以选择是否存储Baggage中的非业务数据，OpenTracing标准强制要求实现此特性。
+- span的tag可以用来记录业务相关的数据，并存储于追踪系统中。实现OpenTracing时，可以选择是否存储Baggage中的非业务数据，OpenTracing标准不强制要求实现此特性。
 
 ## Inject and Extract
 

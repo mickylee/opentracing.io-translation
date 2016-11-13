@@ -37,50 +37,48 @@ outbound_request = ...
 carrier = {}
 tracer.inject(span_context, opentracing.Format.HTTP_HEADERS, carrier)
 
-# `carrier` now contains (opaque) key:value pairs which we pass
-# along over whatever wire protocol we already use.
+# `carrier` 现在（隐形）包含我们通过网络传输的键值对。
 for key, value in carrier:
     outbound_request.headers[key] = escape(value)
 ```
 
-#### Extract pseudocode example
+#### Extract 伪代码示例
 
 ```python
 inbound_request = ...
 
-# We'll again use the (builtin) HTTP_HEADERS carrier format. Per the
-# HTTP_HEADERS documentation, we can use a map that has extraneous data
-# in it and let the OpenTracing implementation look for the subset
-# of key:value pairs it needs.
+# 我们将再次使用基于（内建的）HTTP_HEADERS carrier格式。
+# 按照HTTP_HEADERS的文档, 我们可以使用一个map来存储外来的值，
+# 允许OpenTracing实现者来根据需要，
+# 来查找集合内部的键值对。
 #
-# As such, we directly use the key:value `inbound_request.headers`
-# map as the carrier.
+# 也就是说，我们直接使用基于键值对的`inbound_request.headers`作为carrier。
 carrier = inbound_request.headers
 span_context = tracer.extract(opentracing.Format.HTTP_HEADERS, carrier)
 # Continue the trace given span_context. E.g.,
 span = tracer.start_span("...", child_of=span_context)
 
-# (If `carrier` held trace data, `span` will now be ready to use.)
+# (如果 `carrier` 保存着trace的数据， 则现在可以创建`span`了。)
 ```
 
-#### Carriers have formats
+#### Carrier格式
 
-All Carriers have a format. In some OpenTracing languages, the format must be specified explicitly as a constant or string; in others, the format is inferred from the Carrier's static type information.
+所有的Carrier都有自己的格式。在一些语言的OpenTracing实现中，格式必须必须作为一个常量或者字符串来指定； 另一些，则通过Carrier的静态类型来指定。
 
 <div id="required-carriers"></div>
 
-## Required Inject/Extract Carrier formats
+## Inject/Extract Carrier 所必须的格式
 
-At a minimum, all platforms require OpenTracing implementations to support two Carrier formats: the "text map" format and the "binary" format.
+至少，OpenTracing标准所有平台的实现者支持两种Carrier格式：基于"text map"（基于字符串的map）的格式和基于"binary"（二进制）的格式。
 
-- The *text map* Carrier format is a platform-idiomatic map from (unicode) `string` to `string`
-- The *binary* Carrier format is an opaque byte array (and presumably more compact and efficient)
+- *text map* 格式的 Carrier是一个平台惯用的map格式，基于unicode编码的`字符串`对`字符串`键值对
+- *binary* 格式的 Carrier 是一个不透明的二进制数组（可能更紧凑和有效）
 
-What the OpenTracing implementations choose to store in these Carriers is not formally defined by the OpenTracing specification, but the presumption is that they find a way to encode "tracer state" about the propagated `SpanContext` (e.g., in Dapper this would include a `trace_id`, a `span_id`, and a bitmask representing the sampling status for the given trace) as well as any key:value Baggage items.
+OpenTracing的实现者选择如何将数据存储到Carrier中，OpenTracing标准没有正式定义，但是，可以推测的是，他们会通过一种方式编码“追踪状态”，来传递`SpanContext`（例如，Drapper会包含`trace_id`，`span_id`，以及一位掩码标识这个trace的采样状态）和Baggage中的其他键值对数据。
 
-### Interoperability of OpenTracing implementations *across process boundaries*
+### 各种OpenTracing实现者，实现 *跨进程边界* 方式的互操作性
 
-There is no expectation that different OpenTracing implementations `Inject` and `Extract` SpanContexts in compatible ways. Though OpenTracing is agnostic about the tracing implementation *across an entire distributed system*, for successful inter-process handoff it's essential that the processes on both sides of a propagation use the same tracing implementation.
+不能期待不同的OpenTracing实现，`Inject` 和 `Extract` SpanContexts采用相互兼容的方式。虽然OpenTracing对于实现 *跨整个分布式系统* 的追踪系统是无从得知的，为了成功实现跨进程的追踪的我收过程，跨进程追踪的两端应该使用相同的追踪系统实现。（即远程调用的两段，使用同一套tracer）。
 
 <div id="custom-carriers"></div>
 

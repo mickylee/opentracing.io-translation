@@ -2,7 +2,7 @@
 
 开发者为应用程序增加跨进程追踪能力时，必须理解[the OpenTracing specification](/pages/spec)中定义的`Tracer.Inject(...)` 和 `Tracer.Extract(...)` 的能力。这两个方法在概念上十分强大，他允许开发人员*正确*并*抽象*的完成跨进程传输的代码，**而不需要绑定特定的OpenTracing的实现**；也就是说，强大的能力带来了巨大的困惑:)
 
-这篇文档，针对`Inject` 和 `Extract`设计和用法，提供一个简要的总结，而不考虑特定的OpenTracing语言和OpenTracing实现。
+这篇文档，针对`Inject` 和 `Extract`设计和用法，提供一个简要的总结，而不考虑特定的OpenTracingg规范各语言的实现和基于OpenTracing标准的追踪系统。
 
 ## 显示的trace传播的“重大作用”
 
@@ -82,11 +82,11 @@ OpenTracing的实现者选择如何将数据存储到Carrier中，OpenTracing标
 
 <div id="custom-carriers"></div>
 
-## Custom Inject/Extract Carrier formats
+## 自定义的 Inject/Extract Carrier 格式
 
-Any propagation subsystem (an RPC library, a message queue, etc) may choose to introduce their own custom Inject/Extract Carrier format; by preferring their custom format **but falling back to a required OpenTracing format as needed** they allow OpenTracing implementations to optimize for their custom format without *needing* OpenTracing implementations to support their format.
+任何的基于网络传输的子系统（RPC库，消息队列等）可能选择引入他们自定义的Inject/Extract的Carrier格式；根据需要自定义格式，**但最终要求返回符合OpenTracing格式的结果**。这样允许OpenTracing的实现者可以优化他们自己的自定义格式，而*不需要*实现者支持这些子系统的自定义格式。
 
-Some pseudocode will make this less abstract. Imagine that we're the author of the (sadly fictitious) **ArrrPC pirate RPC subsystem**, and we want to add OpenTracing support to our outbound RPC requests. Minus some error handling, our pseudocode might look like this:
+一些伪代码将可能更明确的说明这个问题。假设我们是**ArrrPC pirate RPC subsystem**的作者，我们希望增加OpenTracing的数据在RPC请求过程中传输。不考虑异常处理，我们的伪代码可能如下所示：
 
 ```python
 span_context = ...
@@ -132,4 +132,4 @@ To make the above more concrete, consider the following sequence:
 1. The server process calls `Tracer.Extract(...)`, passing in the desired operation name, a format identifier for a text map, and the Carrier from above
 1. In the absence of data corruption or other errors, the *server* now has a `SpanContext` instance that belongs to the same trace as the one in the client
 
-Other examples can be found in the [OpenTracing use cases](/pages/instrumentation/common-use-cases) doc.
+在[OpenTracing use cases, OpenTracing常见用例](/pages/instrumentation/common-use-cases) 文档中，可以找到其他使用案例。

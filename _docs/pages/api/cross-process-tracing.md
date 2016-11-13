@@ -1,40 +1,39 @@
-# Everything You Wanted to Know About Inject and Extract but were Afraid to Ask
+# 每一个对Inject和Extract存在疑惑，又羞于启齿的人
 
-Programmers adding tracing support across process boundaries must understand the `Tracer.Inject(...)` and `Tracer.Extract(...)` capabilities of [the OpenTracing specification](/pages/spec). They are conceptually powerful, allowing the programmer to write *correct* and *general* cross-process propagation code **without being bound to a particular OpenTracing implementation**; that said, with great power comes great opportunity for confusion. :)
+开发者为应用程序增加跨进程追踪能力时，必须理解[the OpenTracing specification](/pages/spec)中定义的`Tracer.Inject(...)` 和 `Tracer.Extract(...)` 的能力。这两个方法在概念上十分强大，他允许开发人员*正确*并*抽象*的完成跨进程传输的代码，**而不需要绑定特定的OpenTracing的实现**；也就是说，强大的能力带来了巨大的困惑:)
 
-This document provides a concise summary of the design and proper use of `Inject` and `Extract`, regardless of the particular OpenTracing language or OpenTracing implementation.
+这篇文档，针对`Inject` 和 `Extract`设计和用法，提供一个简要的总结，而不考虑特定的OpenTracing语言和OpenTracing实现。
 
-## "The Big Picture" for explicit trace propagation
+## 显示的trace传播的“重大作用”
 
-The hardest thing about distributed tracing is the *distributed* part. Any tracing system needs a way of understanding the causal relationship between activities in many distinct processes, whether they be connected via formal RPC frameworks, pub-sub systems, generic message queues, ad hoc HTTP calls, best-effort UDP packets, or something else entirely.
+分布式追踪系统最困难的部分就是在*分布式*的应用环境下保持追踪的正常工作。任何一个追踪系统，都需要理解多个跨进程调用间的因果关系，无论他们是通过RPC框架、发布-订阅机制、通用消息队列、HTTP请求调用、UDP传输或者其他传输模式。
 
-Some distributed tracing systems (e.g., [Project5](http://dl.acm.org/citation.cfm?id=945454) from 2003, or [WAP5](http://www2006.org/programme/item.php?id=2033) from 2006 or [The Mystery Machine](https://www.usenix.org/node/186168) from 2014) *infer* causal relationships across process boundaries. Of course **there is a tradeoff between the apparent convenience of these black-box inference-based approaches and the freshness and quality of the assembled traces.** Per the concern about quality, OpenTracing is an *explicit* distributed tracing instrumentation standard, and as such it is much better-aligned with approaches like [X-Trace](https://www.usenix.org/conference/nsdi-07/x-trace-pervasive-network-tracing-framework) from 2007, [Dapper](http://research.google.com/pubs/pub36356.html) from 2010, or numerous open-source tracing systems like [Zipkin](https://github.com/openzipkin) or [Appdash](https://github.com/sourcegraph/appdash) (among others).
+一些分布式追踪系统（例如，2003年的[Project5](http://dl.acm.org/citation.cfm?id=945454)，2006年的[WAP5](http://www2006.org/programme/item.php?id=2033)，2014年的[The Mystery Machine](https://www.usenix.org/node/186168)）会*推断*跨进程间的因果关系。当然，**这些系统，都需要在基于黑盒的因果关系推断 与 追踪结果的整合、实时准确展现上，进行处理折衷。** 处于对准确展现的关注，OpenTracing是一个*明确*的分布式追踪系统标准，它更倾向于如果产品的处理方式：2007年的[X-Trace](https://www.usenix.org/conference/nsdi-07/x-trace-pervasive-network-tracing-framework)，2010年的[Dapper](http://research.google.com/pubs/pub36356.html)，以及很多开源的追踪系统，如：[Zipkin](https://github.com/openzipkin) or [Appdash](https://github.com/sourcegraph/appdash) ，[Appdash](https://github.com/sourcegraph/appdash) 等等
 
-**Together, `Inject` and `Extract` allow for inter-process trace propagation without tightly coupling the programmer to a particular OpenTracing implementation.**
+**`Inject` 和 `Extract` 允许开发者进行跨进程追踪时，不用和特定的OpenTracing实现进行紧耦合**
 
-## Requirements for the OpenTracing propagation scheme
+## OpenTracing跨进程传播需求
 
-For `Inject` and `Extract` to be useful, all of the following *must* be true:
+为了使`Inject` 和 `Extract`有效，*必须*遵守如下要求：
 
-- Per the above, the [OpenTracing user](/pages/instrumentation/common-use-cases#stepping-back-who-is-opentracing-for) handling cross-process trace propagation must not need to write OpenTracing-implementation-specific code
-- OpenTracing implementations must not need special handlers for every known inter-process communication mechanism: that's far too much work, and it's not even well-defined
-- That said, the propagation mechanism should be extensible for optimizations
+- 如上文所述，[OpenTracing 用户](/pages/instrumentation/common-use-cases#stepping-back-who-is-opentracing-for) 处理跨进程的追踪传输时，必须不需要使用OpenTracing使用中的特定代码
+- 基于OpenTracing的追踪系统，必须不需要针对每一种已知的跨进程通讯机制都进行处理：这其中包含太多的工作，很多还没有明确的定义
+- 也就是说，这套传播机制必须是最利于扩展的
 
-## The basic approach: Inject, Extract, and Carriers
+## 基本方法：Inject, Extract, 和 Carriers
 
-Any SpanContext in a trace may be **Injected** into what OpenTracing refers to as a Carrier. A **Carrier** is an interface or data structure that's *useful* for inter-process communication (IPC); that is, the Carrier is something that "carries" the tracing state from one process to another. The OpenTracing specification includes two [required Carrier formats](#required-carriers), though [custom Carrier formats](#custom-carriers) are possible as well.
+追踪过程中的任何一个SpanContext可以被**Injected**（注入）到一个Carrier中。**Carrier**可以是一个接口或者一个数据载体，他对于跨进程通讯（IPC）是十分有帮助的。**Carrier**负责将追踪状态从一个进程"carries"（携带，传递）到另一个进程。OpenTracing标准包含两种[必须的 Carrier 格式](#required-carriers)，尽管，[自定义的 Carrier 格式](#custom-carriers) 也是可能的。
 
-Similarly, given a Carrier, an injected trace may be **Extracted**, yielding a SpanContext instance which is semantically identical to the one Injected into the Carrier.
+同样的，对于一个Carrier，如果已经被**Injected**，那么它也可以被**Extracted**（提取），从而得到一个SpanContext实例。这个SpanContext代表着被**Injected**到Carrier的信息。
 
-#### Inject pseudocode example
+#### Inject伪代码示例
 
 ```python
 span_context = ...
 outbound_request = ...
 
-# We'll use the (builtin) HTTP_HEADERS carrier format. We
-# start by using an empty map as the carrier prior to the
-# call to `tracer.inject`.
+# 我们将使用（内建的）基于HTTP_HEADERS的carrier格式。
+# 我们在调用`tracer.inject之前，先将一个空的map作为一个carrier
 carrier = {}
 tracer.inject(span_context, opentracing.Format.HTTP_HEADERS, carrier)
 

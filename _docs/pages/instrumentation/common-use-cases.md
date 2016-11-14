@@ -1,10 +1,10 @@
-# Common use cases
+# 常见用例
 
-This page aims to illustrate common use cases that developers who instrument their applications and libraries with OpenTracing API need to deal with.
+本章的主要目的是，针对通过使用OpenTracing API来监控应用程序或类库的开发者，提供示例说明。
 
-## Stepping Back: Who is OpenTracing for?
+## 回到开头：OpenTracing是为了哪些人建立的？
 
-OpenTracing is a thin standardization layer that sits between application/library code and various systems that consume tracing and causality data. Here is a diagram:
+OpenTracing是一个轻量级的标准化层，它位于应用程序/类库 和 追踪或日志分析程序 之间。
 
 ~~~
    +-------------+  +---------+  +----------+  +------------+
@@ -26,36 +26,36 @@ OpenTracing is a thin standardization layer that sits between application/librar
  +-----------+  +-------------+  +-------------+  +-----------+
 ~~~
 
-**Application Code**: Developers writing application code can use OpenTracing to describe causality, demarcate control flow, and add fine-grained logging information along the way.
+**Application Code, 应用程序代码**： 开发者在开发业务代码时，可以通过OpenTracing来描述追踪数据间的因果关系，控制流程，增加细粒度的日志信息。
 
-**Library Code**: Similarly, libraries that take intermediate control of requests can integrate with OpenTracing for similar reasons. For instance, a web middleware library can use OpenTracing to create spans for request handling, or an ORM library can use OpenTracing to describe higher-level ORM semantics and measure execution for specific SQL queries.
+**Library Code, 类库代码**：类似的，类库程序作为请求控制的中介媒介，也可以通过OpenTracing来描述追踪数据间的因果关系，控制流程，增加细粒度的日志信息。例如：一个web中间件类库，可以使用OpenTracing，在请求被处理时新增span；或者，一个ORM类库，可以使用OpenTracing来描述高级别的ORM语义和特定SQL查询间的关系。
 
-**OSS Services**: Beyond embedded libraries, entire OSS services may adopt OpenTracing to integrate with distributed traces initiating in – or propagating to – other processes in a larger distributed system. For instance, an HTTP load balancer may use OpenTracing to decorate requests, or a distributed key:value store may use OpenTracing to explain the performance of reads and writes.
+**OSS Services, OSS服务（运营支持服务）**：除嵌入式类库以外，整个OSS服务可以采取OpenTracing标准来，集成分布式追踪系统来处理一个大型的分布式系统中的复杂调用关系。例如，一个HTTP的负载均衡器可以使用OpenTracing标准来设置请求（如：设置请求图），或者一个基于键值对的存储系统使用OpenTracing来解读系统的读写性能。
 
-**RPC/IPC Frameworks**: Any subsystem tasked with crossing process boundaries may use OpenTracing to standardize the format of tracing state as it injects into and extracts from various wire formats and protocols.
+**RPC/IPC Frameworks，RPC/IPC框架（远程调用框架）**：任何一个跨进程的子任务，都可以通过使用OpenTracing，来标准化追踪数据注入到传输协议中的格式。
 
-All of the above should be able to use OpenTracing to describe and propagate distributed traces **without knowledge of the underlying OpenTracing implementation**.
+所有上面这些，都应该使用OpenTracing来描述和传递分布式追踪数据，**而不需要了解OpenTracing的实现**。
 
-### OpenTracing priorities
+### OpenTracing 优先级
 
-Since there are many orders of magnitude more programmers and applications *above* the OpenTracing layer (rather than below it), the APIs and use cases prioritize ease-of-use in that direction. While there are certainly ample opportunities for helper libraries and other abstractions that save time and effort for OpenTracing implementors, the use cases in this document are restricted to callers (rather than callees) of OpenTracing APIs.
+由于OpenTracing层的 *上层* 有更多的应用程序和开发者（而不是下层），API和用例的易用性也倾向于他们。这篇文档中的用例将面向OpenTracing API调用者（而非被调者），帮助他们在建立辅助的类库和各种抽象模型，最终有利于为OpenTracing实现者节省时间和精力。
 
-Without further ado:
+让我们直接进入主题：
 
-## Motivating Use Cases
+## 用例
 
-### Tracing a Function
+### 追踪Function（函数）
 
 ```python
 def top_level_function():
     span1 = tracer.start_span('top_level_function')
     try:
-        . . . # business logic
+        . . . # business logic，业务逻辑
     finally:
         span1.finish()
 ```
 
-As a follow-up, suppose that as part of the business logic above we call another `function2` that we also want to trace. In order to attach that function to the ongoing trace, we need a way to access `span1`. We discuss how it can be done later, for now let's assume we have a helper function `get_current_span` for that:
+后续，作为业务逻辑的一部分，我们调用了`function2`方法，也想被追踪。为了让这个追踪附着在正在进行的追踪上（和上述的追踪形成一根调用链）。我们将在后面的t章节讨论如何实现，现在，我们假设一个`get_current_span`函数可以完成这个功能：
 
 ```python
 def function2():
@@ -68,9 +68,9 @@ def function2():
             span2.finish()
 ```
 
-We assume that, for whatever reason, the developer does not want to start a new trace in this function if one hasn't been started by the caller already, so we account for `get_current_span` potentially returning `None`.
+我们假设，如果这个追踪还未被启动，无论什么原因，开发者都不想在这个函数内启动一个新的追踪，所以我们考虑到`get_current_span`函数可能返回`None`。
 
-These two examples are intentionally naive. Usually developers will not want to pollute their business functions directly with tracing code, but use other means like a [function decorator in Python](https://github.com/uber-common/opentracing-python-instrumentation/blob/master/opentracing_instrumentation/local_span.py#L59):
+这两个例子都非常的简单。 通常情况下，应用程序不希望追踪代码和业务代码混在一起，而使用其他方式，例如：标注等，参考[function decorator in Python](https://github.com/uber-common/opentracing-python-instrumentation/blob/master/opentracing_instrumentation/local_span.py#L59):
 
 ```python
 @traced_function
@@ -78,17 +78,17 @@ def top_level_function():
     ... # business logic
 ```
 
-### Tracing Server Endpoints
+### 服务端追踪
 
-When a server wants to trace execution of a request, it generally needs to go through these steps:
+当一个应用服务器要追踪一个请求的执行情况，他一般需要以下几步：
 
-  1. Attempt to extract a SpanContext that's been propagated alongside the incoming request (in case the trace has already been started by the client), or start a new trace if no such propagated SpanContext could be found.
-  1. Store the newly created Span in some _request context_ that is propagated throughout the application, either by application code, or by the RPC framework.
-  1. Finally, close the Span using `span.finish()` when the server has finished processing the request.
+  1. 试图从请求中获取传输过来的SpanContext（防止调用链在客户端已经开启），如果无法获取SpanContext，则新开启一个追踪。
+  1. 在_request context_中存储最新d创建的span，_request context_会通过应用程序代码或者RPC框架进行传输
+  1. 最终，当服务端完成请求处理后，使用 `span.finish()`关闭span。
 
-#### Extracting a SpanContext from an Incoming Request
+#### 从请求中获取（Extracting）SpanContext
 
-Let's assume that we have an HTTP server, and the SpanContext is propagated from the client via HTTP headers, accessible via `request.headers`:
+假设，我们有一个HTTP服务器，SpanContext通过HTTP头从客户端传递到服务端，可通过`request.headers`访问到：
 
 ```python
 extracted_context = tracer.extract(
@@ -96,12 +96,11 @@ extracted_context = tracer.extract(
     carrier=request.headers
 )
 ```
+ 这里，我们使用`headers`中的map作为carrier。追踪程序知道需要hearder的哪些内容，用来重新构建tracer的状态和Baggage。
 
-Here we use the `headers` map as the carrier. The Tracer object knows which headers it needs to read in order to reconstruct the tracer state and any Baggage.
+#### 从请求中获取一个已经存在的追踪，或者开启一个新的追踪
 
-#### Continuing or Starting a Trace from an Incoming Request
-
-The `extracted_context` object above can be `None` if the Tracer did not find relevant headers in the incoming request: presumably because the client did not send them. In this case the server needs to start a brand new trace.
+如果无法在请求的相关的头信息中获取所需的值，上文中的`extracted_context`可能为`None`：此时我们假设客户端没有发送他们。在这种情况下，服务端需要新创建一个追踪（新调用链）。
 
 ```python
 extracted_context = tracer.extract(
@@ -116,9 +115,9 @@ span.set_tag('http.method', request.method)
 span.set_tag('http.url', request.full_url)
 ```
 
-The `set_tag` calls are examples of recording additional information in the Span about the request.
+可以通过调用`set_tag`，在Span中记录请求的附加信息。
 
-The `operation` above refers to the name the server wants to give to the Span. For example, if the HTTP request was a POST against `/save_user/123`, the operation name can be set to `post:/save_user/`. The OpenTracing API does not dictate how applications name the spans.
+上面提到的`operation`是通过提供的服务名指定Span的名称。例如,如果HTTP请求到`/save_user/123`，那么`operation`名称应该被设置为`post:/save_user/`。OpenTracing API不会强制要求应用程序如何给span命名。
 
 #### In-Process Request Context Propagation
 

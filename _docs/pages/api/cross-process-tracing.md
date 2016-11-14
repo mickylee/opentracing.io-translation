@@ -92,44 +92,42 @@ OpenTracing的实现者选择如何将数据存储到Carrier中，OpenTracing标
 span_context = ...
 outbound_request = ...
 
-# First we try our custom Carrier, the outbound_request itself.
-# If the underlying OpenTracing implementation cares to support
-# it, this call is presumably more efficient in this process
-# and over the wire. But, since this is a non-required format,
-# we must also account for the possibility that the OpenTracing
-# implementation does not support arrrpc.ARRRPC_OT_CARRIER.
+# 首先，我们使用我们自定义的Carrier：outbound_request
+# 如果我们优先支持OpenTracing的实现，这样会更加高效的处理。
+# 但是，这不是一个必须的格式要求，我们不能指望基于OpenTracing的
+# 追踪程序支持arrrpc.ARRRPC_OT_CARRIER参数
 try:
     tracer.inject(span_context, arrrpc.ARRRPC_OT_CARRIER, outbound_request)
 
 except opentracing.UnsupportedFormatException:
     # If unsupported, fall back on a required OpenTracing format.
+    # 如果不支持，则使用OpenTracing支持的格式
     carrier = {}
     tracer.inject(span_context, opentracing.Format.HTTP_HEADERS, carrier)
-    # `carrier` now contains (opaque) key:value pairs which we
-    # pass along over whatever wire protocol we already use.
+    # `carrier` 现在包含键值对，我们可以使用任何网络协议，来传输这个键值对即可
     for key, value in carrier:
 	outbound_request.headers[key] = escape(value)
 ```
 
 <div id="format-identifiers"></div>
 
-### More about custom Carrier formats
+### 关于Carrier自定义格式的更多内容
 
-The precise representation of the "Carrier formats" may vary from platform to platform, but in all cases they should be drawn from a global namespace. Support for a new custom carrier format *must not necessitate* changes to the core OpenTracing platform APIs, though each OpenTracing platform API must define the required OpenTracing carrier formats (e.g., string maps and binary blobs). For example, if the maintainer of ArrrPC RPC framework wanted to define an "ArrrPC" Inject/Extract format, she or he must be able to do so without sending a PR to OpenTracing maintainers (though of course OpenTracing implementations are not required to support the "ArrrPC" format). There is [an end-to-end injector and extractor example below](#propagation-example) to make this more concrete.
+"Carrier的格式"在不同平台可能是不一样的，但在所有的场景下，他们都会使用一个全局的命名空间。支持一个全新的自定义格式的carrier*不必*修改OpenTracing核心平台的API， 尽管每一个实现OpenTracing平台API时，必须定义符合OpenTracing标准要求的carrier格式（比如：基于字符串的map和二进制块）。例如，ArrrPC RPC的维护团队定义了一个叫做"ArrrPC"的Inject/Extract格式，他们不需要向OpenTracing团队提交RP（当然OpenTracing的实现者不要求一定支持"ArrrPC"格式）。[an end-to-end injector and extractor example below，一个端到端的injector和extractor示例](#propagation-example) 将更具体的描述这个问题。
 
 
 <div id="propagation-example"></div>
 
-## An end-to-end Inject and Extract propagation example
+## 一个端到端的injector和extractor示例
 
-To make the above more concrete, consider the following sequence:
+为了让描述更具体，考虑如下的流程：
 
-1. A *client* process has a `SpanContext` instance and is about to make an RPC over a home-grown HTTP protocol
-1. That client process calls `Tracer.Inject(...)`, passing the active `SpanContext` instance, a format identifier for a text map, and a text map Carrier as parameters
-1. `Inject` has populated the text map in the Carrier; the client application encodes that map within its homegrown HTTP protocol (e.g., as headers)
-1. *The HTTP request happens and the data crosses process boundaries...*
-1. Now in the server process, the application code decodes the text map from the homegrown HTTP protocol and uses it to initialize a text map Carrier
-1. The server process calls `Tracer.Extract(...)`, passing in the desired operation name, a format identifier for a text map, and the Carrier from above
-1. In the absence of data corruption or other errors, the *server* now has a `SpanContext` instance that belongs to the same trace as the one in the client
+1. 一个*客户端*进程有一个`SpanContext`实例，并准备进行通过自制的HTTP协议，进行一次RPC调用
+1. 客户端进程调用`Tracer.Inject(...)`，传入`SpanContext`实例，支持基于字符格式的map的标识符，以及支持基于字符map的Carrier，三个参数
+1. Carrier将在Carrier对基于字符的map（参数2）填充必要的数据；客户端应用程序会在自制的HTTP协议中，对这个map进行编码（如：添加到HTTP头中）
+1. *进行HTTP调用，将数据进行跨进程传输*
+1. 现在，在服务端进程进行处理。应用程序从自制的HTTP协议中解码出上文所述的map（参数2），并通过他，初始化基于字符map的Carrier
+1. 服务端进程调用`Tracer.Extract(...)`，传入需要的操作名（operation name），支持就要字符格式的map的标识符，以及上面构建的Carrier
+1. 不考虑数据丢失，和其他错误，*服务端*现在有了和客户端追踪上下文中，一样的`SpanContext`。
 
 在[OpenTracing use cases, OpenTracing常见用例](/pages/instrumentation/common-use-cases) 文档中，可以找到其他使用案例。

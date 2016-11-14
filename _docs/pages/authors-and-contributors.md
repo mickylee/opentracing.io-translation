@@ -1,6 +1,6 @@
-# Authors and Contributors
+# 作者和贡献者
 
-(in alphabetical order)
+(按照字母表排序)
 
 * @adriancole (Adrian Cole)
 * @bcronin (Ben Cronin)

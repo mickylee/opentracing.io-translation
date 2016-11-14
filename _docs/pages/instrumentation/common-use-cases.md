@@ -2,7 +2,7 @@
 
 本章的主要目的是，针对通过使用OpenTracing API来监控应用程序或类库的开发者，提供示例说明。
 
-## 回到开头：OpenTracing是为了哪些人建立的？
+## 回到伊始：OpenTracing是为了哪些人建立的？
 
 OpenTracing是一个轻量级的标准化层，它位于应用程序/类库 和 追踪或日志分析程序 之间。
 
@@ -119,21 +119,21 @@ span.set_tag('http.url', request.full_url)
 
 上面提到的`operation`是通过提供的服务名指定Span的名称。例如,如果HTTP请求到`/save_user/123`，那么`operation`名称应该被设置为`post:/save_user/`。OpenTracing API不会强制要求应用程序如何给span命名。
 
-#### In-Process Request Context Propagation
+#### 进程内请求上下文传输
 
-Request context propagation refers to application's ability to associate a certain _context_ with the incoming request such that this context is accessible in all other layers of the application within the same process. It can be used to provide application layers with access to request-specific values such as the identity of the end user, authorization tokens, and the request's deadline. It can also be used for transporting the current tracing Span.
+请求的上下文传输是指，对于一个请求，所有处理这个请求的层都需要可以访问到同一个_context_（上下文）。可以通过特定值，例如：用户id、token、请求的截止时间等，获取到这个_context_（上下文）。也可以通过这种方法获取正在追踪的Span。
 
-Implementation of request context propagation is outside the scope of the OpenTracing API, but it is worth mentioning them here to better understand the following sections. There are two commonly used techniques of context propagation:
+请求_context_（上下文）的传输不属于OpenTracing API的范围，但是，这里提到他，是为了让大家更好的理解后面的章节。下面有两种常用的上下文传输技术：
 
-##### Implicit Propagation
+##### 隐式传输
 
-In implicit propagation techniques the context is stored in platform-specific storage that allows it to be retrieved from any place in the application. Often used by RPC frameworks by utilizing such mechanisms as thread-local or continuation-local storage, or even global variables (in case of single-threaded processes).
+隐式传输技术要求_context_（上下文）需要被存储到平台特定的位置，允许从应用程序的任何地方获取这个值。常用的RPC框架会利用thread-local 或 continuation-local存储机制，或者全局变量（如果是单线程处理）。
 
-The downside of this approach is that it almost always has a performance penalty, and in platforms like Go that do not support thread-local storage implicit propagation is nearly impossible to implement.
+这种方式的缺点在于，有明显的性能损耗，有些平台比如Go不知道基于thread-local的存储，隐式传输将几乎不可能实现。
 
-##### Explicit Propagation
+##### 显示传输
 
-In explicit propagation techniques the application code is structured to pass around a certain _context_ object:
+显示传输技术要求应用程序代码，包装并传递_context_（上下文）对象：
 
 ```go
 func HandleHttp(w http.ResponseWriter, req *http.Request) {
@@ -155,11 +155,11 @@ func BusinessFunction2(ctx context.Context, arg1...) {
 }
 ```
 
-The downside of explicit context propagation is that it leaks what could be considered an infrastructure concern into the application code. This [Go blog post](https://blog.golang.org/context) provides an in-depth overview and justification of this approach.
+显示传输的缺点在于，它向应用程序代码，暴露了底层的实现。[Go blog post](https://blog.golang.org/context)这边文章提供了这种方式的深层次的解析。
 
-### Tracing Client Calls
+### 追踪客户端调用
 
-When an application acts as an RPC client, it is expected to start a new tracing Span before making an outgoing request, and propagate the new Span along with that request. The following example shows how it can be done for an HTTP request.
+当一个应用程序作为一个RPC客户端时，它可能希望在发起调用之前，启动一个新的追踪的span，并将这个心的span随请求一起传输。下面，通过一个HTTP请求的实例，展现如何做到这点。
 
 ```python
 def traced_request(request, operation, http_client):
@@ -196,15 +196,15 @@ def traced_request(request, operation, http_client):
         raise
 ```
 
-  * The `get_current_span()` function is not a part of the OpenTracing API. It is meant to represent some util method of retrieving the current Span from the current request context propagated implicitly (as is often the case in Python).
-  * We assume the HTTP client is asynchronous, so it returns a Future, and we need to add an on-completion callback to be able to finish the current child Span.
-  * If the HTTP client returns a future with exception, we log the exception to the Span with `log` method.
-  * Because the HTTP client may throw an exception even before returning a Future, we use a try/catch block to finish the Span in all circumstances, to ensure it is reported and avoid leaking resources.
+  * `get_current_span()`函数不是OpenTracing API的一部分。它仅仅代表一个工具类的方法，通过当前的请求上下文获取当前的span。（在Python一般会这样用）。
+  * 我们假定HTTP请求是异步的，所以他会返回一个Future。我们为这次调用增加的成功回调函数，在回调函数内部完成当前的span。
+  * 如果HTTP客户端返回一个异常，则通过log方法将异常记录到span中。
+  * 因为HTTP请求可以在返回Future后发生异常，我们使用try/catch块，在任何情况下都会完成span，保证这个span会被上报，并避免内存溢出。
 
 
-### Using Baggage / Distributed Context Propagation
+### 使用 Baggage / 分布式上下文传输
 
-The client and server examples above propagated the Span/Trace over the wire, including any Baggage. The client may use the Baggage to pass additional data to the server and any other downstream server it might call.
+上面通过网络在客户端和服务端间传输的Span和Trace，包含了任意的Baggage。客户端可以使用Baggage将一些额外的数据传递到服务端，以及这个服务端的下游其他服务器。
 
 ```python
 # client side
@@ -214,20 +214,20 @@ span.context.set_baggage_item('auth-token', '.....')
 token = span.context.get_baggage_item('auth-token')
 ```
 
-### Logging Events
+### Logging事件
 
-We have already used `log` in the client Span use case. Events can be logged without a payload, and not just where the Span is being created / finished. For example, the application may record a cache miss event in the middle of execution, as long as it can get access to the current Span from the request context:
+我们在客户端span的示例代码中，已经使用过`log`。事件被记录不会有额外的负载，也不一定必须在span创建或完成时进行操作。例如，应用通过可以在执行过程中，通过获取当前请求的当前span,记录一个缓存未命中事件：
 
 ```python
 span = get_current_span()
 span.log(event='cache-miss')
 ```
 
-The tracer automatically records a timestamp of the event, in contrast with tags that apply to the entire Span. It is also possible to associate an externally provided timestamp with the event, e.g. see [Log (Go)](https://github.com/opentracing/opentracing-go/blob/ca5c92cf/span.go#L53).
+tracer会为事件自动增加一个时间戳，这点和Span的tag操作时不同的。也可以将外部的时间戳和事件相关联，例如，[Log (Go)](https://github.com/opentracing/opentracing-go/blob/ca5c92cf/span.go#L53)。
 
-### Recording Spans With External Timestamps
+### 使用外部的时间戳，记录Span
 
-There are scenarios when it is impractical to incorporate an OpenTracing compatible tracer into a service, for various reasons. For example, a user may have a log file of what's essentially Span data coming from a black-box process (e.g. HAProxy). In order to get the data into an OpenTracing-compatible system, the API needs a way to record spans with externally defined timestamps.
+因为多种多样的原因，有些场景下，会将OpenTracing兼容的tracer集成到一个服务中。例如,一个用户有一个日志文件，其中包含大量的来自黑盒进程（如：HAProxy）产生的span。为了让这些数据接入OpenTracing兼容的系统，API需要提供一种方法通过外部的时间戳记录span的信息。
 
 ```python
 explicit_span = tracer.start_span(
@@ -241,9 +241,9 @@ explicit_span.finish(
 )
 ```
 
-### Setting Sampling Priority Before the Trace Starts
+### 在追踪开始之前，设置采样优先级
 
-Most distributed tracing systems apply sampling to reduce the amount of trace data that needs to be recorded and processed. Sometimes developers want to have a way to ensure that a particular trace is going to be recorded (sampled) by the tracing system, e.g. by including a special parameter in the HTTP request, like `debug=true`. The OpenTracing API standardizes around some useful tags, and one o them is the so-called "sampling priority": exact semnatics are implementation-specific, but any values greater than zero (the default) indicates a trace of elevated importance. In order to pass this attribute to tracing systems that rely on pre-trace sampling, the following approach can be used:
+很多分布式追踪系统，通过采样来降低追踪数据的数量。有时，开发者想有一种方式，确保这条trace一定会被记录（采样），例如：HTTP请求中包含特定的参数，如`debug=true`。OpenTracing API标准化了一些有用的tag，其中一个被叫做"sampling priority"（采样优先级）：精确的语义是由追踪系统的实现者决定的，但是任何值大于0（默认）代表一条trace的高优先级。为了将`debug`属性传递给追踪系统，需要在追踪前进行预处理，如下面所写的这样：
 
 ```python
 if request.get('debug'):

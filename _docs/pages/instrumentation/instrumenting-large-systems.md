@@ -1,6 +1,7 @@
-# How to Instrument Systems at Scale
+# 如何追踪大规模分布式系统
 
-_Before getting onto recommendations on how to instrument your large-scale system with OpenTracing, be sure to read the [Specification overview](/pages/spec)._
+_在阅读如何使用OpenTracing标准，监控大规模分布式系统之前，确保你已经阅读过[Specification overview](/pages/spec)章节_
+_Before getting onto recommendations on how to instrument your large-scale system with OpenTracing, be sure to read the [Concepts and Terminology, 概念和术语](/pages/spec)._
 
 ## Spans and Relationships
 

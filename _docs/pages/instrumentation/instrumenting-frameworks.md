@@ -1,6 +1,6 @@
-# Instrumenting Frameworks
+# 监控框架
 
-*Trace all the things!*
+*追踪所有的事情!*
 
 ## Audience
 

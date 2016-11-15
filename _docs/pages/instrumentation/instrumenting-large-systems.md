@@ -18,36 +18,35 @@ _在阅读如何使用OpenTracing标准，监控大规模分布式系统之前�
 
 你可以从使用支持OpenTracing标准的服务框架开始 (如：[gRPC](https://github.com/grpc/grpc-go)）。但是，如果你不支持OpenTracing的框架，你可以阅读[IPC/RPC Framework Guide](/pages/instrumentation/instrumenting-frameworks)章节。
 
-## Focus on Areas of Value
+## 专注高价值区域
 
 如上面提到的，从RPC层和你的web框架开始构建追踪，是一个好方法。这两部分将包含事务路径中的大部分内容。
 
+下一步，你应该着手在没有被服务框架覆盖的事务路径上。为足够多的组件增加监控，为高价值的事务创建一条关键链路的追踪轨迹。
 
-Next you should look for areas of your infrastructure on the path of a transaction not covered by your service framework. Instrument enough of these code components to create a trace along the critical path of a high value transaction.
+你监控的首要目标，是基于关键路径上的span，寻找最耗时的操作，为可量化的优化操作提供最重要的数据支持。例如，对于只占用事务时间1%的操作（一个大粒度的span）增加更细粒度的监控，对于你理解端到端的延迟（性能问题）不会有太大意义。
 
-By prioritizing based on the Spans in your transaction on the critical path and consume the greatest time, there is the greatest opportunity for measurable optimization. For example, adding detailed instrumentation to a span making up 1% of the total transaction time is unlikely to provide meaningful gains in your understanding of end-to-end latency.
+## 先走再跑，逐步提高
 
-## Crawl, Walk, Run
+如果你正在构建你的跨应用追踪系统实现，使用这套系统建立高价值的关键事务与平衡关键事务和代码覆盖率的概念。最大的价值，在于为关键事务生成端到端的追踪。可视化展现你的追踪结果是非常重要的。它可能帮助你定于那块区域（代码块/系统模块）需要更细粒度的追踪。
 
-As you are implementing tracing across your system, the key to building value is to balance completing some well-articulated high value traces with the notion of total code coverage. The greatest value is going to come from building just enough coverage to generate end-to-end traces for some number of high-value transactions. It is important to visualize your instrumentation as early as possible. This will help you identify areas that need further visibility.
+一旦你有了端到端的监控，你很容易评估在哪些区域增加投入，进行更细粒度的追踪，并能确定事情的优先级。如果你开始深入处理监控问题，可以考虑哪些部分能够复用。通过这些复用建立一套可以在多个服务间服用的监控类库。
 
-Once you have an end-to-end trace, you can evaluate and prioritize areas where greater visibility will be worth the level of effort for the additional instrumentation. As you start to dig deeper, look for the units of work that can be reused. An example of this would be instrumenting a library that is used across multiple services.
+这种方法可以提供广泛的覆盖（如：RPC，web框架等），也能为关键业务的事务增加高价值的埋点。即使有些埋点（生成span）的代码是一次性工作，也能通过这种模式发现未来工作的优先级，优化工作效率。
 
-This approach often leads to broad coverage (RPC, web frameworks, etc) while also adding high-value spans to business-critical transactions. Even if the instrumentation for specific spans involve one-off work, patterns will emerge that will assist in optimizing prioritization of future work.
+## 示例实例
 
-## Conceptual Example
+下面的例子让上述的概念更具体一些：
 
-Here is an example of this progression to make the approach more tangible:
+在这个例子中，我们想追踪一个，由手机端发起，调用了多个服务的调用链。
 
-For this example we want to trace a request initiated by a mobile client and propagating through a small constellation of backend services.
-
-1. First, we must identify the overall flow of the transaction. In our example, the transactions look like this:
+1. 首先，我们必须说明这个事务的大体情况。在我们的例子中，事务如下所示：
 
   ![image showing a system transaction](/images/OTHT_2.png)
 
-  **_Start with a user action that creates a web request from a mobile client (HTTP) → web tier (RPC) → auth service (RPC) → billing service (RPC) → resource request (API) → response to web tier (API) → response to client (HTTP)_**
+  **_一个客户通过手机客户端向web发起了一个HTTP请求，产生一个复杂的调用流程：mobile client (HTTP) → web tier (RPC) → auth service (RPC) → billing service (RPC) → resource request (API) → response to web tier (API) → response to client (HTTP)_**
 
-2. Now that we have high-level conceptual understanding of a transaction flow we can look to instrument a few of the broader protocols and frameworks. The best choice will be to start with the RPC service since this will be an easy way to gather  spans for everything happening behind the web service (or at least everything leveraging the RPC service directly).
+2. 现在，我们对事务的大概情况了解，我们去监控一些通用的协议和框架。最好的选择是从RPC服务框架开始，这将是收集web请求背后发生的调用情况的最好方式。（或者说，任何在分布式过程中发生的问题，都会在直接体现在RPC服务中）
 
 3. The next component that makes sense to instrument is the web framework. By adding the web framework we are able to then have an end-to-end trace. It may be rough, but at least the full workflow can be captured by our tracing system.
 

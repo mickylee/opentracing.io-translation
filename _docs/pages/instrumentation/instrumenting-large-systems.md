@@ -1,27 +1,27 @@
 # 如何追踪大规模分布式系统
 
 _在阅读如何使用OpenTracing标准，监控大规模分布式系统之前，确保你已经阅读过[Specification overview](/pages/spec)章节_
-_Before getting onto recommendations on how to instrument your large-scale system with OpenTracing, be sure to read the [Concepts and Terminology, 概念和术语](/pages/spec)._
 
-## Spans and Relationships
+## Spans 和它们之间的关系
 
-The two fundamental aspects of implementing OpenTracing across your infrastructure are _Spans_ and the _Relationships_ between those spans:
+实现OpenTracing完成分布式追踪的两个基本概念就是_Spans_和_Relationships_(span间关系)：
 
-* **_[Span](/pages/spec#spans)_** is a logical unit of work in the system that has a start time and a duration. In a trace Spans are associated with the components of the system as they are exercised on a specified path.
+* **_[Span](/pages/spec#spans)_** 是系统中的一个逻辑工作单元，包含这个工作单元启动时间和执行时间。在一条追踪链路中，各个span与系统中的不同组件有关，并体现这些组件的执行路径。
 
   ![image of spans in a system](/images/OTHT_0.png)
 
-* **_[Relationships](/pages/spec/#causal-span-references)_** are the connections between Spans. A Span may reference zero or more Spans that are causally related. This allows for the spans to be connected and help identify the critical path of a trace.
+* **_[Relationships](/pages/spec/#causal-span-references)_** 是span间的连接关系。一个span可以和0-n个组件存在因果关系。这种关系是的各个span被串接起来，并用来帮助定位追踪链路的关键路径。
 
   ![image of relationships in a system](/images/OTHT_1.png)
 
-Your desired end state is to get Spans for all or your code components as well as the relationships between those Spans. When starting to build out your infrastructure with distributed tracing the best practice is to start with service frameworks (i.e. RPC layer) or other components known to have broad interaction with multiple execution paths.
+你所期待的结束状态，是获取你所有组件的span，以及它们之间的关系。当开始建立你的分布式追踪系统时，最好的方法是从服务框架（如：RPC层）或者其他和复杂执行路径有关的组件开始。
 
-By using a service framework that is instrumented with OpenTracing ([gRPC](https://github.com/grpc/grpc-go), etc.) you can get a head start on this effort. However, if you are working with a non-instrumented framework you can get some assistance with this part by reading the [IPC/RPC Framework Guide](/pages/instrumentation/instrumenting-frameworks).
+你可以从使用支持OpenTracing标准的服务框架开始 (如：[gRPC](https://github.com/grpc/grpc-go)）。但是，如果你不支持OpenTracing的框架，你可以阅读[IPC/RPC Framework Guide](/pages/instrumentation/instrumenting-frameworks)章节。
 
 ## Focus on Areas of Value
 
-As mentioned above, start with your RPC layers and your web framework to provide a good foundation for your instrumentation. Both of these will likely have a large coverage area and touch a significant number of transaction paths.
+如上面提到的，从RPC层和你的web框架开始构建追踪，是一个好方法。这两部分将包含事务路径中的大部分内容。
+
 
 Next you should look for areas of your infrastructure on the path of a transaction not covered by your service framework. Instrument enough of these code components to create a trace along the critical path of a high value transaction.
 

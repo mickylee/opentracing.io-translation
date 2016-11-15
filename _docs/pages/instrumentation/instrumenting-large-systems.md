@@ -48,21 +48,22 @@ _在阅读如何使用OpenTracing标准，监控大规模分布式系统之前�
 
 2. 现在，我们对事务的大概情况了解，我们去监控一些通用的协议和框架。最好的选择是从RPC服务框架开始，这将是收集web请求背后发生的调用情况的最好方式。（或者说，任何在分布式过程中发生的问题，都会在直接体现在RPC服务中）
 
-3. The next component that makes sense to instrument is the web framework. By adding the web framework we are able to then have an end-to-end trace. It may be rough, but at least the full workflow can be captured by our tracing system.
+3. 下一个重点监控的组件应该是web框架。通过增加web框架的监控，我们能够得到一个端到端的追踪链路。虽然这点追踪链路有点粗，但是至少，我们的追踪系统获取到了完整的调用栈。
 
   ![image of a high-level trace](/images/OTHT_3.png)
 
-4. At this point we want to take a look at the trace and evaluate where our efforts will provide the greatest value. In our example we can see the area that has the greatest delay for this request is the time it takes for resources to be allocated. This is likely a good place to start adding more granular visibility into the allocation process and instrument the components involved. Once we instrument the resource API we see that resource request can be broken down into:
+4. 通过上面的工作，我们可以看到所需的调用链，并评估我们细化哪一块的追踪。在我们的例子中，我们可以看到，请求中最耗时的操作时获取资源的操作。所以，我们应该细化这块的监控粒度，监控资源定位内部的组件。一旦我们完成资源请求的监控，我们可以看到资源请求被分解成下图所示的情况：
 
   ![image of a mid-level trace showing a serialized process](/images/OTHT_4.png)
   **_resource request (API) → container startup (API) → storage allocation (API) → startup scripts (API) → resource ready response (API)_**
 
-5. Once we have instrumented the resource allocation process components, we can see that the bulk of the time is during resource provisioning. The next step would be to go a bit deeper and look to see if there were optimizations that could be done in this process. Maybe we could provision resources in parallel rather than in serial.
+5. 一旦我们完整资源组件的追踪，我们可以看到大量的时间消耗在提供上，下一步，我们深入分析，如果可能，我们优化资源获取程序，使用并行处理替代串行处理。
 
   ![image of a mid-level trace showing a parallelized process](/images/OTHT_5.png)
 
-6. Now that there is visibility and an established baseline for an end-to-end workflow, we can articulate a realistic external SLO for that request. In addition, articulating SLO’s for internal services can also become part of the conversation about uptime and error budgets.
+6. 现在我们有了一条基于端到端调用流程的可视化展现以及基线，我们可以为这个服务建立明确的SLO。另外，为内部服务建立SLO，可以成为对服务正常和错误运行的时间的讨论的基础。
 
-7. The next iteration would be to go back to the top level of the trace and look for other large spans that appear to lack visibility and apply more granular instrumentation. If instead the visibility is sufficient, the next step would be to move on to another transaction.
+7. 下一次跌倒，我们回到最顶层的追踪，去寻找下一个长耗时的任务，但是没有明细展现，这时需要更细粒度的追踪。如果展现的粒度已经足够，我们可以进行下一个关键事务的追踪和调优处理了。
 
-8. Rinse and repeat.
+
+8. 重复上述步骤.

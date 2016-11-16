@@ -2,50 +2,50 @@
 
 *追踪所有的事情!*
 
-## Audience
+## 谁应该阅读本章节？
 
-The audience for this guide are developers interested in adding [OpenTracing](http://opentracing.io/) instrumentation to a web, RPC, or other framework that makes requests and/or receives responses. This instrumentation makes it easy for developers using the framework to incorporate end-to-end (distributed) tracing.
+这篇指导文档，面向希望将[OpenTracing](http://opentracing.io/)将入到web、RPC或其他框架的监控当中的开发者。增加监控能力可以使框架能够和端到端的分布式追踪进行整合。
 
-Distributed tracing provides insight about individual requests as they propagate throughout a system. OpenTracing is an open-source standard API for consistent distributed tracing of requests across processes, from web and mobile client platforms to the storage systems and custom backends at the bottom of an application stack. Once OpenTracing integrates across  the entire application stack, it’s easy to trace requests across the distributed system. This allows developers and operators much-needed visibility optimize and stabilize production services.
+当一个请求跨越一套分布式系统时，分布式追踪可以提供请求在分布式系统内的运行情况。OpenTracing是一个开源的API标准，致力于分布式请求的追踪，保证能够追踪用户从web或移动端到后台应用，以及最终的数据存储。一旦OpenTracing完成跨应用栈（跨进程）的整合，在一个分布式系统中进行追踪将更容易。这将可以满足，开发者和运维人员对于产品服务优化和加强健壮性的要求。
 
-Before you begin, check [here](/pages/api/api-implementations) to make sure that there's a working OpenTracing API for your platform.
+在开始之前，请确保有你的平台（编程语言）有对应的OpenTracing API的实现。查看[这里](/pages/api/api-implementations)。
 
-## Overview
+## 总览
 
-At a high level, here is what you need for an OpenTracing integration:
+总体来说，集成OpenTracing，你需要做下面两件事：
 
-Server framework requirements:
+服务端框架修改需求：
 
-* Filters, interceptors, middleware, or another way to process inbound requests
-* Active span storage: either a request context or a request-to-span map
-* Settings or another way to configure tracer configuration
+* 过滤器、拦截器、中间件或其他处理输入请求的组件
+* span的存储，存储一个request context或者request到span的映射表
+* 通过某种方式对tracer进行配置
 
-Client framework requirements:
+客户端框架修改需求：
 
-* Filters, interceptors, or another way to process outgoing requests
-* Settings or another way to configure tracing configuration
+* 过滤器、拦截器、中间件或其他处理对外调用的请求的组件
+* 通过某种方式对tracer进行配置
 
-## Pro-tips:
+## 重要提醒：
 
-Before we dive into implementation, here are a few important concepts and features that should be made available to framework users.
+在我们专注于实现之前，有几个重要的概念和特性需要框架开发者所熟悉。
 
-### Operation Names
+### Operation Names，操作名
 
-You'll notice an operation_name variable floating around this tutorial. Every span is created with an operation name that should follow the guidelines outlined [here](/pages/spec). You should have a default operation name for each span, but also provide a way for the user to specify custom operation names.
+你会注意到operation_name（操作名）这个变量出现在这篇文章的各处。每一个span都需要通过一个operation_name创建，operation_name需要遵守规范的要求，[点击查看](/pages/spec)。每一个span都需要一个默认的operation_name，并提供一种可以由用户命名的方式。
 
-Examples of default operation names:
+默认operation_name示例：
 
-* The name of the request handler method
-* The name of a web resource
-* The concatenated names of an RPC service and method
+* request handler的方法名
+* web请求路径
+* RPC的服务名+方法名
 
-### Specifying Which Requests to Trace
+### 确定需要追踪的请求
 
-Some users may want to trace every request while other may want only specific requests to be traced. You should ideally allow users to set up tracing for either of these scenarios. For example, you could provide @Trace annotations/decorators, in which only annotated handler functions have tracing enabled. You can also provide settings for the user to specify whether they're using these annotations, versus whether they want all requests to be traced automatically.
+有些用户希望追踪所有的请求，同时，有些用户只需要追踪特定的请求。你应该允许用户去设置是否需要追踪，以满足这两种场景。例如，你可以提供@Trace标注，被标注的方法会被追踪。你也可以提供一种配置，允许用户去设置他们是否使用标准，所有的请求是不是应该被追踪。
 
-### Tracing Request Properties
+### 追踪请求的属性
 
-Users may also want to track information about the requests without having to manually access the span and set the tags themselves. It's helpful to provide a way for users to specify properties of the request they want to trace, and then automatically trace these features. Ideally, this would be similar to the Span Decorator function in gRPC:
+用户可能需要追踪关于请求的一些信息，而不希望去操作span或者为span设置tag。为用户提供一种方式设置需要追踪的请求的属性，并自动追踪这些属性值，是十分有帮助的。概念上，这和gRPC中的span的Decorator函数十分类似：
 
 ```
 // SpanDecorator binds a function that decorates gRPC Spans.
@@ -55,9 +55,7 @@ func SpanDecorator(decorator SpanDecoratorFunc) Option {
 	}
 }
 ```
-
-Another approach could have a setting `TRACED_REQUEST_ATTRIBUTES` that the user can pass a list of attributes (such as `URL`, `METHOD`, or `HEADERS`), and then in your tracing filters, you would include the following:
-
+另一种方式，是设置`TRACED_REQUEST_ATTRIBUTES`，允许用户传递一个列表（例如：`URL`, `METHOD`, `HEADERS`），然后你会在追踪过滤器中，包含这些属性：
 ```
 for attr in settings.TRACED_REQUEST_ATTRIBUTES:
     if hasattr(request, attr):
@@ -65,24 +63,25 @@ for attr in settings.TRACED_REQUEST_ATTRIBUTES:
         span.set_tag(attr, payload)
 ```
 
-## Server-side Tracing
+## 服务端追踪
 
-The goals of server-side tracing are to trace the lifetime of a request to a server and connect this instrumentation to any pre-existing trace in the client. You can do this by creating spans when the server receives the request and ending the span when the server finishes processing the request. The workflow for tracing a server request is as follows:
+服务端追踪的目的是追踪请求在这个服务器内部的全生命周期的情况，并保证能够和前置的客户端追踪信息连接起来。你可以在服务器收到请求时，创建span，并在服务器完成请求处理后，关闭这些span。追踪一个服务端请求的流程如下：
 
-* Server Receives Request
-    * Extract the current trace state from the inter-process transport (HTTP, etc)
-    * Start the span
-    * Store the current trace state
-* Server Finishes Processing the Request / Sends Response
-    * Finish the span
 
-Because this workflow depends on request processing, you'll need to know how to  change the  framework’s requests and responses handling--whether this is through filters, middleware, a configurable stack, or some other mechanism.
+* 服务器接收到请求
+    * 从网络请求（跨进程的调用：HTTP等）获取当前的追踪链状态
+    * 创建一个新的span
+    * 保存当前的追踪状态
+* 服务器完成请求处理 / 返回响应
+    * 结束上面创建的span
 
-### Extract the Current Trace State
+由于调用流程决定于请求的处理情况，所以你需要知道如果修改框架的请求和响应处理——是否需要通过修改过滤器、中间件、配置栈或者其他机制。
 
-In order to trace across process boundaries in distributed systems, services need to be able to continue the trace injected by the client that sent each request. OpenTracing allows this to happen by providing inject and extract methods that encode a span's context into a carrier. (The specifics of the encoding is left to the implementor, so you won't have to worry about that.)
+### 获取当前的追踪链状态
 
-If there was an active request on the client side, the span context will already be injected into the the request. Your job is to then extract that span context using the io.opentracing.Tracer.extract method. The carrier that you'll extract from depends on which type of service you're using; web servers, for example, use HTTP headers as the carrier for HTTP requests (as shown below):
+为了在分布式系统中，跨进程边界追踪调用情况，RPC服务需要能够衔接每一个服务请求的服务端和客户端。OpenTracing允许通过inject和extract方法，将span的上下文信息编码到carrier中。（编码规范留给开发者确定，所以你需要担心这个问题。）
+
+如果客户端发起一个请求时，span的上下文就已经被加到了请求内容中。你的工作是使用io.opentracing.Tracer.extract方法，从请求中获取span的上下文。carrier通过你使用哪种服务，决定是否哪种方法从请求中获取上下文；例如，web服务通过HTTP头作为carrier，从HTTP请求中获取span上下文（如下所示）：
 
 Python:
 
@@ -101,11 +100,11 @@ SpanContext parentSpan = tracer.getTracer().extract(Format.Builtin.HTTP_HEADERS,
     new TextMapExtractAdapter(headers));
 ```
 
-OpenTracing can throw errors when an extract fails due to no span being present, so make sure to catch the errors that signify there was no injected span and not crash your server. This often just means that the request is coming from a third-party (or untraced) client, and the server should start a new trace.
+OpenTracing当提取失败时，可以选择抛出异常，所以确保会捕获异常，防止异常造成服务器宕机。这种情况通常意味着请求来自于第三方应用（没有被追踪的应用），此时应该开启一个新的追踪。
 
-### Start the span
+### 启动一个span
 
-Once you receive a request and extract any existing span context, you should immediately start a span representing the lifetime of the request to the server. If there is an extracted span context present, then the new server span should be created with a ChildOf reference to the extracted span, signifying the relationship between the client request and server response. If there was no injected span, you'll just start a new span with no references.
+一旦你接收到一个请求，并且获取到了span的上下文，你应该立即为这次请求创建一个span，代表这次请求的全生命周期。如果存在被提取出来的上下文，则新的服务端server应该是被提取出的span的孩子节点（ChildOf关系），代表客户端和服务端之间的调用关系。如果没有被注入的span，你需要启动一个新的span（没有上下级关系）。
 
 Python:
 
@@ -127,11 +126,11 @@ if(parentSpan == null){
 }
 ```
 
-### Store the current span context
+### 保存当前的span上下文
 
-It's important for users to be able to access the current span context while processing a request, in order to set custom tags on the span, log events, or create child spans that represent work done on behalf of the server. In order to allow for this, you have to decide how to make the span available to users. This will be dictated largely by the structure of your framework. Here are  two common cases as examples:
+在处理请求期间，让用户可以访问span上下文是十分重要的。只有获取上下文，才能为服务端，进行自定义的tag设置，记录事件(log event)，创建子级的span，用于最终展现服务内部的工作情况。为了满足这个目标，你必须决定如何让用户访问当前的span。这将由框架的架构决定。这里有两个常见用例：
 
-1. Use of request context: If your framework has a request context that can store arbitrary values, then you can store the current span in the request context for the duration of the processing of a request. This works particularly well if your framework has filters that can alter how requests are processed. For example, if you have a request context called ctx, you could apply a filter similar to this:
+1. 使用请求上下文：如果你的框架有一个请求上下文，上下文可以存储任意值，这样你可以在请求处理过程中，一直把现在的span存储到上下文中。如果你的框架中有过滤器（Filter），这种实现方式是一种很好的方式。例如你有一个请求上下文叫做ctx，那么你可以这样实现一个过滤器（Filter）：
 
 ```
 def filter(request):
@@ -141,9 +140,9 @@ def filter(request):
     span.finish()
 ```
 
-3. Now, at any point during the processing of the request, if the user accesses `ctx.active_span`, they'll receive the span for that request. Note that once the request is processed, `ctx.active_span` should retain whatever value it had before the request was processed.
+2. 现在，在请求处理的任何时候，用户都可以通过`ctx.active_span`获取当前的span。注意，一旦请求被处理，`ctx.active_span`的值就不应该被改变。
 
-4. Map Requests to their associated span: You may not have a request context available, or you may use filters that have separate methods for preprocessing and postprocessing requests. If this is the case, you can instead create a mapping of requests to the span that represents its lifetime. One way that you could do this is to create a framework-specific tracer wrapper that stores this mapping. For example:
+3. 建立请求和span的映射关系：如果存在这种情况：如有可能没有一个可用的请求上下文，或者你针对请求的预处理和后处理有不同的过滤器方法， 你可以选择建立一个请求和span的映射表。其中一种实现方式是创建一个框架特有的tracer的包装器（tracer wrapper），存储这个映射表，例如：
 
 ```
 class MyFrameworkTracer:
@@ -160,9 +159,9 @@ class MyFrameworkTracer:
         del self.active_spans[request]
 ```
 
-5. If your server can handle multiple requests at once, then make sure that your implementation of the span map is threadsafe.
+4. 如果你的服务器可以并行的处理请求，请确保你的span的映射表是线程安全的。
 
-6. The filters would then be applied along these lines:
+5. 过滤器处理示例代码如下：
 
 ```
 def process_request(request):
@@ -172,9 +171,9 @@ def process_response(request, response):
     tracer.finish_span(request)
 ```
 
-7. Note that the user here can call `tracer.get_span(request)` during response processing to access the current span. Make sure that the request (or whatever unique request identifier you're using to map to spans) is availabe to the user.
+6. 注意：用户在处理reponse时，调用`tracer.get_span(request)`获取当前的span，请确保用户依然能获取request实例。（也可以不使用request对象，而使用其他可以标识当前请求的参数）
 
-## Client-side tracing
+## 客户端追踪
 
 Enabling Client-side tracing is applicable to frameworks that have a client component that is able to initiate a request. The goal is to inject a span into the header of the request that can then be passed to the server-side portion of the framework. Just like with server-side tracing, you'll need to know how to alter how your clients send requests and receive responses. When done correctly, the trace of a request is visible end-to-end.
 

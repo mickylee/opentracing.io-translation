@@ -185,14 +185,13 @@ def process_response(request, response):
     * 将span注入(Inject)到请求中
 * 发送请求
 * 接收响应
-    * 完成关闭span
+    * 完成并关闭span
 
 ### 读取现在的追踪状态 / 新建一个span
 
 正如服务端一样，我们必须知道是应该开启一个新的追踪或者和一个已有的追踪连接上。例如,一个基于微服务架构分布式架构中，一个应用可能*即是服务端又是客户端*。一个服务的提供方同时又是另一个服务的发起方，这个东西需要被联系起来。如果存在一个活跃的调用链，你需要帮他的活跃span作为父级span，并在客户端请求出开启一个新的span。否则，你需要新建没有没有父级节点的span。
 
-
-How you recognize whether there is an active trace depends on how you're storing active spans. If you're using a request context, then you can do something like this:
+如何判断是否存在一个活跃的追踪，取决于你如何存储的活跃的span。如果你使用一个请求上下文，你可以这样处理：
 
 ```
 if hasattr(ctx, active_span):
@@ -203,7 +202,7 @@ else:
     span = tracer.start_span(operation_name=operation_name)
 ```
 
-If you're using the request-to-span mapping technique, your approach might look like:
+如果你使用request到span的映射机制，你可以这样处理：
 
 ```
 parent_span = tracer.get_span(request)
@@ -212,18 +211,18 @@ span = tracer.start_span(
     child_of=parent_span)
 ```
 
-You can see examples of this approach in [gRPC](https://github.com/grpc-ecosystem/grpc-opentracing/blob/master/java/src/main/java/io/opentracing/contrib/ActiveSpanSource.java) and [JDBI](https://github.com/opentracing-contrib/java-jdbi/blob/9f6259538a93f466f666700e3d4db89526eee23a/src/main/java/io/opentracing/contrib/jdbi/OpenTracingCollector.java#L153).
+[gRPC](https://github.com/grpc-ecosystem/grpc-opentracing/blob/master/java/src/main/java/io/opentracing/contrib/ActiveSpanSource.java) 和 [JDBI](https://github.com/opentracing-contrib/java-jdbi/blob/9f6259538a93f466f666700e3d4db89526eee23a/src/main/java/io/opentracing/contrib/jdbi/OpenTracingCollector.java#L153) 的处理实例。
 
-### Inject the Span
+### 注入(Inject) Span
 
-This is where you pass the trace information into the client's request so that the server you send it to can continue the trace. If you're sending an HTTP request, then you'll just use the HTTP headers as your carrier.
+注入span的时候，你会把当前追踪的上下文信息放到客户端的请求中，这样当调用发生时，追踪可以在服务端被还原，并继续进行。如果是使用HTTP请求，你可以使用HTTP头作为上下文数据的carrier(载体)。
 
-span = # start span from the current trace state
+span = # 从请求头中获取当前的追踪状态
 `tracer.inject(span, opentracing.Format.HTTP_HEADERS, request.headers)`
 
-### Finish the Span
+### 完成并关闭span
 
-When you receive a response, you want to end the span to signify that the client request is finished. Just like on the server side, how you do this depends on how your client request/response processing happens. If your filter wraps the request directly you can just do this:
+当你收到相应后，你完成并关闭span，标志着客户端调用结束。和服务端一样，如果完成这个操作取决于你在客户端如何处理请求和响应。如果你存在过滤器(filter)，你可以这样处理：
 
 ```
 def filter(request, response):
@@ -235,7 +234,7 @@ def filter(request, response):
     span.finish()
 ```
 
-Otherwise, if you have ways to process the request and response separately, you might extend your tracer to include a mapping of client requests to spans, and your implementation would look more like this:
+否则，如果你的请求和相应是分开处理的，你可能需要扩展你的tracer，包含请求和span的映射关系。参考实现如下：
 
 ```
 def process_request(request):
@@ -248,12 +247,12 @@ def process_response(request, response):
 
 ## Closing Remarks
 
-If you'd like to highlight your project as OpenTracing-compatible, feel free to use our GitHub badge and link it to the OpenTracing website.
+如果你想突显你的项目是监控OpenTracing标准的，你可以在你的所需的地方，使用我们的GitHub图标。也可以将你的项目链接，添加到OpenTracing官方网站上。
 
 [![OpenTracing badge](https://github.com/opentracing/contrib/blob/master/badge/OpenTracing-enabled-blue.png)](http://opentracing.io)
 
 `[![OpenTracing Badge](https://github.com/opentracing/contrib/blob/master/badge/OpenTracing-enabled-blue.png)](http://opentracing.io)`
 
-Once you've packaged your implementation, email us at [community@opentracing.io](mailto://community@opentracing.io) with your implementation details (platform, description, github username) and we'll create a repo for you under [opentracing-contrib](https://github.com/opentracing-contrib/), so that others will be able to find and use your integration. You can also find there concrete examples of OpenTracing integrations into different open source projects.
+一旦你发布你的实现，请发邮件到[community@opentracing.io](mailto://community@opentracing.io)，并说明你的实现细节(platform, description, github username  平台、描述和github账号)，我们将在[opentracing-contrib](https://github.com/opentracing-contrib/)下给你开一个子项目，其他人可以在这个子项目里面发现并使用你的集成方案。你也可以在这里，找到多种开源项目集成OpenTracing的实例。
 
-If you're interested in learning more about OpenTracing, join the conversation by joining our [mailing list](https://groups.google.com/forum/#!forum/opentracing) or [Gitter](https://gitter.im/opentracing/public).
+如果你想了解更多关于OpenTracing的信息，欢迎加入[mailing list](https://groups.google.com/forum/#!forum/opentracing) 或 [Gitter](https://gitter.im/opentracing/public)。

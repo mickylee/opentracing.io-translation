@@ -175,21 +175,22 @@ def process_response(request, response):
 
 ## 客户端追踪
 
-Enabling Client-side tracing is applicable to frameworks that have a client component that is able to initiate a request. The goal is to inject a span into the header of the request that can then be passed to the server-side portion of the framework. Just like with server-side tracing, you'll need to know how to alter how your clients send requests and receive responses. When done correctly, the trace of a request is visible end-to-end.
+当框架有一个客户端组件的时候，需要在初始化request的时候，开启客户端的追踪。这样做是为了将生成的span放到请求头中，这样span才能请求随着请求，传递到服务端。类似于服务端追踪，你需要知道如何修改你的客户端代码，来发送请求，和接收相应。当客户端完成修改，就可以完成端到端的追踪了。
 
-Workflow for server side tracing:
+追踪一个客户端请求的流程如下：
 
-* Prepare request
-    * Load the current trace state
-    * Start a span
-    * Inject the span into the request
-* Send request
-* Receive response
-    * Finish the span
+* 准备请求对象
+    * 读取现在的追踪状态
+    * 新建一个span
+    * 将span注入(Inject)到请求中
+* 发送请求
+* 接收响应
+    * 完成关闭span
 
-### Load the Current Trace State / Start a Span
+### 读取现在的追踪状态 / 新建一个span
 
-Just like on the server side, we have to recognize whether we need to start a new trace or connect with an already-active trace. For instance, most microservices act as both client *and* server within the larger distributed system, and their outbound client requests should be associated with whatever request the service was handling at the time. If there's an active trace, you'll start a span for the client request with the active span as its parent. Otherwise, the span you start will have no parent.
+正如服务端一样，我们必须知道是应该开启一个新的追踪或者和一个已有的追踪连接上。例如,一个基于微服务架构分布式架构中，一个应用可能*即是服务端又是客户端*。一个服务的提供方同时又是另一个服务的发起方，这个东西需要被联系起来。如果存在一个活跃的调用链，你需要帮他的活跃span作为父级span，并在客户端请求出开启一个新的span。否则，你需要新建没有没有父级节点的span。
+
 
 How you recognize whether there is an active trace depends on how you're storing active spans. If you're using a request context, then you can do something like this:
 

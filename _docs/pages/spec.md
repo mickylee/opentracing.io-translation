@@ -56,7 +56,7 @@
 
 <span id="references"></span>
 
-### Causal Span References
+### Inter-Span References
 
 一个span可以和一个或者多个span间存在因果关系。OpenTracing定义了两种关系：`ChildOf` 和 `FollowsFrom`。**这两种引用类型代表了子节点和父节点间的直接因果关系**。未来，OpenTracing将支持非因果关系的span引用关系。（例如：多个span被批量处理，span在同一个队列中，等等）
 
@@ -98,9 +98,10 @@
 
 ### Logs
 
-每个span可以进行多次**Logs**操作，每一次**Logs**操作，都需要一个带时间戳的时间名称，以及可选的任意大小的存储结构。事件名称应该是span生命周期内，一些特定事件的标识符。例如，一个代表浏览器页面加载的span，可以为每一个字段添加一个时间，可参考[Performance.timing](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceTiming)。
+每个span可以进行多次**Logs**操作，每一次**Logs**操作，都需要一个带时间戳的时间名称，以及可选的任意大小的存储结构。
 
-虽然不是强制要求，但是特定的时间名称应该作用在大量的span示例上：因为追踪系统可能使用这些事件名称（包括时间戳），对span进行分析汇总。更多信息，可参考[Data Conventions Guidelines 数据约定指南](api/data-conventions.html)。
+标准中定义了一些日志（logging）操作的一些常见用例和相关的log事件的键值，可参考[Data Conventions Guidelines 数据约定指南](api/data-conventions.html)。
+
 
 <span id="tags"></span>
 
@@ -141,11 +142,6 @@ OpenTracing支持了很多不同的平台，当然，每个平台的API试图保
 - **Finish**，完成已经开始的`Span`。处理获取`SpanContext`之外，Finish必须是span实例的最后一个被调用的方法。**(py: `finish`, go: `Finish`)**。 一些的语言实现方法会在`Span`结束之前记录相关信息，因为Finish方法可能不会被调用，因为主线程处理失败或者其他程序错误。在这种情况下，实现应该明确的记录`Span`，保证数据的持久化。
 - **Set a key:value tag on the `Span`.**，为`Span`设置tag。tag的key必须是`string`类型，value必须是`string`，`boolean`或数字类型。tag其他类型的value是没有定义的。如果多个value对应同一个key（例如被设置多次），实现方式是没有被定义的。**(py: `set_tag`, go: `SetTag`)**
 - **Add a new log event**，为`Span`增加一个log事件。事件名称是`string`类型，参数值可以是任何类型，任何大小。tracer的实现者不一定保存所有的参数值（设置可以所有参数值都不保存）。其中的时间戳参数，可以设置当前时间之前的时间戳。**(py: `log`, go: `Log`)**
-
-## The `SpanContext` Interface
-
-`SpanContext`接口必须实现以下功能。用户可以通过`Span`实例或者`Tracer`的Extract能力获取`SpanContext`接口实例。
-
 - **Set a Baggage item**, 设置一个string:string类型的键值对。注意，新设置的Baggage元素，只保证传递到未来的子级的`Span`。参考下图所示。**(py: `set_baggage_item`, go: `SetBaggageItem`)**
 - **Get a Baggage item**， 通过key获取Baggage中的元素。**(py: `get_baggage_item`, go: `BaggageItem`)**
 
@@ -166,6 +162,11 @@ OpenTracing支持了很多不同的平台，当然，每个平台的API试图保
                  SPAN C元素的F\G\H子级span可以读取到BAGGAGE的元素X
 ~~~
 
+## The `SpanContext` Interface
+
+`SpanContext`接口必须实现以下功能。用户可以通过`Span`实例或者`Tracer`的Extract能力获取`SpanContext`接口实例。
+
+- **Iterate over all Baggage items** 是一个只读特性。**(py: `baggage`, go: `ForeachBaggageItem`)**
 - 虽然以前`SpanContext`是`Tracer`接口的一部分，但是`SpanContext`对于[Inject and Extract](#inject-extract)是必不可少的。
 
 ## The `Tracer` Interface

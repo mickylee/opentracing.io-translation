@@ -74,7 +74,7 @@ span = tracer.start_span("...", child_of=span_context)
 - *text map* 格式的 Carrier是一个平台惯用的map格式，基于unicode编码的`字符串`对`字符串`键值对
 - *binary* 格式的 Carrier 是一个不透明的二进制数组（可能更紧凑和有效）
 
-OpenTracing的实现者选择如何将数据存储到Carrier中，OpenTracing标准没有正式定义，但是，可以推测的是，他们会通过一种方式编码“追踪状态”，来传递`SpanContext`（例如，Drapper会包含`trace_id`，`span_id`，以及一位掩码标识这个trace的采样状态）和Baggage中的其他键值对数据。
+OpenTracing的实现者选择如何将数据存储到Carrier中，OpenTracing标准没有正式定义，但是，可以推测的是，他们会通过一种方式编码“追踪状态”，来传递`SpanContext`（例如，Dapper会包含`trace_id`，`span_id`，以及一位掩码标识这个trace的采样状态）和Baggage中的其他键值对数据。
 
 ### 各种OpenTracing实现者，实现 *跨进程边界* 方式的互操作性
 

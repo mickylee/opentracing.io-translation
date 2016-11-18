@@ -6,9 +6,9 @@ OpenTracing通过定义的API，可实现将监控数据记录到一个可插拔
 
 监控软件和追踪软件开发者在高层次的共识，将产生巨大的价值：如果在一些通用的应用场景下，都使用某些已知的tag的键值对，tracer程序可以选择对他们进行特别的关注。被`log`的事件，span的结构也是如此。
 
-例如，考虑基于HTTP的应用服务器。应用系统处理的请求中的URL、HTTP动作（get/post等）、返回码，对于应用系统的诊断是非常有帮助的。监控者可以选择使用tag方法标记这个参数，命名为`URL`或`http.url`，从纯API技术角度来说是有效的。但是，如果一个tracer需要增加一些高级功能，例如根据URL的值建立索引，或者针对特定来源的请求进行采样，你必须知道数据的格式。换句话说，tag的名字和监控程序的提供方的要求必须是一直的，这样追踪程序才能在收到数据后，提供更加智能的分析结果。
+例如，考虑基于HTTP的应用服务器。应用系统处理的请求中的URL、HTTP动作（get/post等）、返回码，对于应用系统的诊断是非常有帮助的。监控者可以选择使用tag方法标记这个参数，命名为`URL`或`http.url`，从纯API技术角度来说是有效的。但是，如果一个tracer需要增加一些高级功能，例如根据URL的值建立索引，或者针对特定来源的请求进行采样，你必须知道数据的格式。换句话说，tag的名字和监控程序的提供方的要求必须是一致的，这样追踪程序才能在收到数据后，提供更加智能的分析结果。
 
-本文在这里向追踪软件的作者在纯数据收集之外，提供一个通用的指导意见。追踪系统的开发者不必严格遵守指南，但是强烈推荐大家这么做。
+本文档对追踪软件开发和探针软件开发都有通用指导意义。追踪系统的开发者不必严格遵守指南，但是强烈推荐大家这么做。
 
 
 
@@ -28,7 +28,7 @@ Span的结构也是非常重要的：span代表了什么，span和span的上下�
 
 ## Span Tag Use-Cases, Span Tag操作用例
 
-监控软件开发者，如果试图标书如下特定类型的数据，请使用下面推荐的tags。tag名称遵循命名空间的通用结构（即：java包名的结构）
+监控软件开发者，如果试图标注如下特定类型的数据，请使用下面推荐的tags。tag名称遵循命名空间的通用结构（即：java包名的结构）
 
 下面推荐的tag，在`ext`模块中，都会为每一个实现制定一个`const`常量值。这些`ext`的值应该用来代表下面的字符串，不同的追踪系统，可以为这些通用概念选择不同的底层实现。在每种实现中，这些值的实现方式是十分相似的。(例如：[Go](https://github.com/opentracing/opentracing-go/blob/master/ext/tags.go), [Python](https://github.com/opentracing/opentracing-python/blob/master/opentracing/ext/tags.py))
 
@@ -105,3 +105,12 @@ OpenTracing API不强调采样的概念，但是大多数追踪系统通过不�
     - 等于 0, 追踪系统不保存这条调用链
     - 如果此tag没有提供，追踪系统使用自己的默认采样规则
 
+## Logs
+
+### Common fields
+
+OpenTracing中的每一次日志记录都会包含一个时间戳，并至少包含一个基于键值对的域。以下是一些标准化的域定义
+Every Log record in OpenTracing has a timestamp and at least one key:value "field". The following fields are standardized:
+
+* `event` - string
+    - 事件域代表span生命周期内某些关键时间点的标识。例如，在浏览器页面加载过程中，获得或释放一个互斥锁就是一个特定的事件域，可参考 [Performance.timing](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceTiming) 标准.

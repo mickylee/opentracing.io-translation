@@ -113,7 +113,7 @@ except opentracing.UnsupportedFormatException:
 
 ### 关于Carrier自定义格式的更多内容
 
-"Carrier的格式"在不同平台可能是不一样的，但在所有的场景下，他们都会使用一个全局的命名空间。支持一个全新的自定义格式的carrier*不必*修改OpenTracing核心平台的API， 尽管每一个实现OpenTracing平台API时，必须定义符合OpenTracing标准要求的carrier格式（比如：基于字符串的map和二进制块）。例如，ArrrPC RPC的维护团队定义了一个叫做"ArrrPC"的Inject/Extract格式，他们不需要向OpenTracing团队提交RP（当然OpenTracing的实现者不要求一定支持"ArrrPC"格式）。[an end-to-end injector and extractor example below，一个端到端的injector和extractor示例](#propagation-example) 将更具体的描述这个问题。
+"Carrier的格式"在不同平台可能是不一样的，但在所有的场景下，他们都会使用一个全局的命名空间。支持一个全新的自定义格式的carrier*不必*修改OpenTracing核心平台的API， 尽管每一个实现OpenTracing平台API时，必须定义符合OpenTracing标准要求的carrier格式（比如：基于字符串的map和二进制块）。例如，ArrrPC RPC的维护团队定义了一个叫做"ArrrPC"的Inject/Extract格式，他们不需要向OpenTracing团队提交PR（当然OpenTracing的实现者不要求一定支持"ArrrPC"格式）。[an end-to-end injector and extractor example below，一个端到端的injector和extractor示例](#propagation-example) 将更具体的描述这个问题。
 
 
 <div id="propagation-example"></div>

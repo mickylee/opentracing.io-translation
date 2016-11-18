@@ -8,7 +8,7 @@
 
 分布式追踪系统最困难的部分就是在*分布式*的应用环境下保持追踪的正常工作。任何一个追踪系统，都需要理解多个跨进程调用间的因果关系，无论他们是通过RPC框架、发布-订阅机制、通用消息队列、HTTP请求调用、UDP传输或者其他传输模式。
 
-一些分布式追踪系统（例如，2003年的[Project5](http://dl.acm.org/citation.cfm?id=945454)，2006年的[WAP5](http://www2006.org/programme/item.php?id=2033)，2014年的[The Mystery Machine](https://www.usenix.org/node/186168)）会*推断*跨进程间的因果关系。当然，**这些系统，都需要在基于黑盒的因果关系推断 与 追踪结果的整合、实时准确展现上，进行处理折衷。** 处于对准确展现的关注，OpenTracing是一个*明确*的分布式追踪系统标准，它更倾向于如果产品的处理方式：2007年的[X-Trace](https://www.usenix.org/conference/nsdi-07/x-trace-pervasive-network-tracing-framework)，2010年的[Dapper](http://research.google.com/pubs/pub36356.html)，以及很多开源的追踪系统，如：[Zipkin](https://github.com/openzipkin) or [Appdash](https://github.com/sourcegraph/appdash) ，[Appdash](https://github.com/sourcegraph/appdash) 等等
+一些分布式追踪系统（例如，2003年的[Project5](http://dl.acm.org/citation.cfm?id=945454)，2006年的[WAP5](http://www2006.org/programme/item.php?id=2033)，2014年的[The Mystery Machine](https://www.usenix.org/node/186168)）会*推断*跨进程间的因果关系。当然，**这些系统，都需要在基于黑盒的因果关系推断 与 追踪结果的整合、实时准确展现上，进行处理折衷。** 处于对准确展现的关注，OpenTracing是一个*明确*的分布式追踪系统标准，它更倾向于如果产品的处理方式：2007年的[X-Trace](https://www.usenix.org/conference/nsdi-07/x-trace-pervasive-network-tracing-framework)，2010年的[Dapper](http://research.google.com/pubs/pub36356.html)，以及很多开源的追踪系统，如：[Zipkin](https://github.com/openzipkin)，[Appdash](https://github.com/sourcegraph/appdash) 等等
 
 **`Inject` 和 `Extract` 允许开发者进行跨进程追踪时，不用和特定的OpenTracing实现进行紧耦合**
 
